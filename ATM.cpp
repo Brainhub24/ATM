@@ -7,8 +7,7 @@ int money;
 
 // function`s
 
-int Deposit ()
-{
+int Deposit() {
     int Deposit;
 
     cout << "*****How much do you want to Deposit : *****"<< endl;
@@ -18,10 +17,10 @@ int Deposit ()
 
     cout << "_____Now Balance is_____= " << money << endl;
 
+    return 0;
 }
 
-int Withdraw ()
-{
+int Withdraw() {
     int Withdraw;
 
     cout << "*****How much do you want to Withdraw*****:" << endl;
@@ -31,25 +30,24 @@ int Withdraw ()
 
     if ( money < 0){
 
-    cout << " Something went wrong . " << endl;
+        cout << " Something went wrong . " << endl;
 
     }
 
-
     cout << "_____Now Balance is_____= " << money << endl;
 
+    return 0;
 }
 
-int Balance ()
-{
+int Balance() {
     int Balance;
 
     cout << "_____Your Balance is_____= " << money << endl;
 
+    return 0;
 }
 
-int Payment ()
-{
+int Payment() {
     int Payment;
     string Bank;
     int num;
@@ -60,7 +58,6 @@ int Payment ()
     cout << "*****Please enter the number of bank account*****:" << endl;
     cin >> num;
 
-
     cout << "*****How much do you want do Payment*****:" << endl;
     cin >> Payment;
 
@@ -68,72 +65,58 @@ int Payment ()
 
     if ( money < 0 ) {
 
-    cout << " Something went wrong  . " << endl;
+        cout << " Something went wrong  . " << endl;
 
     }
 
-
     cout << "_____Now Balance is_____= " << money << endl;
 
+    return 0;
 }
+
 // function main
-
-
-int main()
-{
+int main() {
     system("color 5E");
 
     cout << "******Welcome to this ATM******" << endl;
 
     //bank
 
-
-
     cout << "******Enter the amount money : ******" << endl;
     cin >> money;
 
     int number;
 
-
-    for (int m = 0; m < 1; m--)
-    {
-
-
-        cout << "******Deposit (1) ______  Withdraw (2) ______ Balance (3) ______ Payment (4) ______ exit (0) "   << " \n ";
+    for (int m = 0; m < 1; m--) {
+        cout << "******Deposit (1) ______  Withdraw (2) ______ Balance (3) ______ Payment (4) ______ exit (0) " << " \n ";
 
         cin >> number;
 
-        switch (number)
-        {
-        case 1:
-            Deposit();
-            break;
+        switch (number) {
+            case 1:
+                Deposit();
+                break;
 
-        case 2:
-            Withdraw();
-            break;
+            case 2:
+                Withdraw();
+                break;
 
-        case 3:
-            Balance();
-            break;
+            case 3:
+                Balance();
+                break;
 
-        case 4:
-            Payment();
-            break;
+            case 4:
+                Payment();
+                break;
 
-        case 0:
-            exit(0);
-            break;
+            case 0:
+                exit(0);
+                break;
 
-
-        default:
-            break;
-
+            default:
+                break;
         }
-
     }
-
 
     return 0;
 }
-
