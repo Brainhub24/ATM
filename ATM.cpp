@@ -1,117 +1,114 @@
 #include <iostream>
-#include <cstdlib>
+#include <string>
 
 using namespace std;
 
-int money;
+// Global variables
+int balance = 0;
 
-// function`s
+// Function prototypes
+void showMenu();
+void depositMoney();
+void withdrawMoney();
+void checkBalance();
+void makePayment();
 
-int Deposit()
-{
-    int deposit;
+int main() {
+    // Welcome message
+    cout << "Welcome to the ATM" << endl << endl;
 
-    cout << "*****How much do you want to Deposit : *****" << endl;
-    cin >> deposit;
-
-    money = money + deposit;
-
-    cout << "_____Now Balance is_____= " << money << endl;
-
-    return 0;
-}
-
-int Withdraw()
-{
-    int withdraw;
-
-    cout << "*****How much do you want to Withdraw*****:" << endl;
-    cin >> withdraw;
-
-    money = money - withdraw;
-
-    if (money < 0) {
-        cout << " Something went wrong . " << endl;
-    }
-
-    cout << "_____Now Balance is_____= " << money << endl;
+    // Display main menu
+    showMenu();
 
     return 0;
 }
 
-int Balance()
-{
-    cout << "_____Your Balance is_____= " << money << endl;
+void showMenu() {
+    int option;
 
-    return 0;
-}
+    do {
+        // Display options
+        cout << "Please select an option:" << endl;
+        cout << "1. Deposit money" << endl;
+        cout << "2. Withdraw money" << endl;
+        cout << "3. Check balance" << endl;
+        cout << "4. Make a payment" << endl;
+        cout << "0. Exit" << endl;
 
-int Payment()
-{
-    int payment;
-    string bank;
-    int num;
+        // Get user input
+        cout << "Option: ";
+        cin >> option;
 
-    cout << "*****Which Bank ? *****:" << endl;
-    cin >> bank;
-
-    cout << "*****Please enter the number of bank account*****:" << endl;
-    cin >> num;
-
-    cout << "*****How much do you want do Payment*****:" << endl;
-    cin >> payment;
-
-    money = money - payment;
-
-    if (money < 0) {
-        cout << " Something went wrong  . " << endl;
-    }
-
-    cout << "_____Now Balance is_____= " << money << endl;
-
-    return 0;
-}
-
-// function main
-
-int main()
-{
-    cout << "\033[1;36m"; // set text color to cyan
-    cout << "******Welcome to this ATM******" << endl;
-
-    // bank
-
-    cout << "******Enter the amount money : ******" << endl;
-    cin >> money;
-
-    int number;
-
-    for (int m = 0; m < 1; m--) {
-        cout << "******Deposit (1) ______  Withdraw (2) ______ Balance (3) ______ Payment (4) ______ exit (0) " << " \n ";
-        cin >> number;
-
-        switch (number) {
+        // Handle user input
+        switch (option) {
             case 1:
-                Deposit();
+                depositMoney();
                 break;
             case 2:
-                Withdraw();
+                withdrawMoney();
                 break;
             case 3:
-                Balance();
+                checkBalance();
                 break;
             case 4:
-                Payment();
+                makePayment();
                 break;
             case 0:
-                exit(0);
+                cout << "Thank you for using the ATM" << endl;
                 break;
             default:
-                break;
+                cout << "Invalid option, please try again" << endl;
         }
+    } while (option != 0);
+}
+
+void depositMoney() {
+    int amount;
+    cout << endl << "Enter the amount you want to deposit: ";
+    cin >> amount;
+    balance += amount;
+    cout << "Deposit successful" << endl;
+    cout << "Your new balance is: " << balance << endl << endl;
+}
+
+void withdrawMoney() {
+    int amount;
+    cout << endl << "Enter the amount you want to withdraw: ";
+    cin >> amount;
+    if (amount > balance) {
+        cout << "Insufficient funds" << endl;
+        cout << "Your current balance is: " << balance << endl << endl;
+    } else {
+        balance -= amount;
+        cout << "Withdrawal successful" << endl;
+        cout << "Your new balance is: " << balance << endl << endl;
     }
+}
 
-    cout << "\033[0m"; // reset text color
+void checkBalance() {
+    cout << endl << "Your current balance is: " << balance << endl << endl;
+}
 
-    return 0;
+void makePayment() {
+    string bankName;
+    string accountNumber;
+    int amount;
+
+    cout << endl << "Please enter the name of the bank: ";
+    cin >> bankName;
+
+    cout << "Please enter the account number: ";
+    cin >> accountNumber;
+
+    cout << "Please enter the amount to be paid: ";
+    cin >> amount;
+
+    if (amount > balance) {
+        cout << "Insufficient funds" << endl;
+        cout << "Your current balance is: " << balance << endl << endl;
+    } else {
+        balance -= amount;
+        cout << "Payment successful" << endl;
+        cout << "Your new balance is: " << balance << endl << endl;
+    }
 }
