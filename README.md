@@ -6,8 +6,8 @@ To get started with the ATM Simulator, simply compile and run the program on you
 This project is committed to fostering a welcoming and inclusive community. We do not tolerate any form of harassment or discrimination. We ask that all contributors and users respect each other and abide by our code of conduct.
 
 ### Insights
-[Output and design | #Issue_3](https://github.com/Brainhub24/ATM/issues/1) DONE!
+[Output and design | #Issue_3](https://github.com/Brainhub24/ATM/issues/3) DONE!
 
-[sh: 1: color: not found | #Issue_2](https://github.com/Brainhub24/ATM/issues/1) DONE!
+[sh: 1: color: not found | #Issue_2](https://github.com/Brainhub24/ATM/issues/2) DONE!
 
 [Return statement #Issue_1](https://github.com/Brainhub24/ATM/issues/1) DONE!
