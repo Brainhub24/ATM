@@ -5,6 +5,16 @@ To get started with the ATM Simulator, simply compile and run the program on you
 
 This project is committed to fostering a welcoming and inclusive community. We do not tolerate any form of harassment or discrimination. We ask that all contributors and users respect each other and abide by our code of conduct.
 
+
+```ruby
+    ___  ________  ___     _____ ______  ___
+   /   |/_  __/  |/  /    / ___//  _/  |/  /
+  / /| | / / / /|_/ /_____\__ \ / // /|_/ / 
+ / ___ |/ / / /  / /_____/__/ // // /  / /  
+/_/  |_/_/ /_/  /_/     /____/___/_/  /_/   
+                                                                                                               
+```
+
 ### Insights
 [Output and design | #Issue_3](https://github.com/Brainhub24/ATM/issues/3) DONE!
 
