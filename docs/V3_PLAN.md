@@ -181,6 +181,10 @@ Each phase ends in something that runs.
 
 ### Phase 3: CLI on top of the core (your Phases 2–4)
 
+> **Status:** a CLI with the same flow as the GUI demo is in `ATM.cpp` (wallet, PIN capture,
+> card-before-cash, retract, deposits, transfers, receipts, journal, themes, `--autoplay`).
+> It also fixes B1-B8. Moving its logic into `core/` is still open.
+
 - `cli/main.cpp` drives `AtmStateMachine`; ANSI colour themes (classic green,
   modern blue) selectable with `--theme`; clear screen and boxed layout.
 - Copyright footer as a `constexpr` string, printed on exit.
