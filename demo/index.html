@@ -1,0 +1,1382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Brainhub24 ATM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one machine standing against a dark tiled wall; the customer's wallet and the
+   operator's panel sit beside it (stacked below on narrow screens). Single dark look by choice. */
+:root {
+  --wall: #191c1f;
+  --wall-hi: #23282c;
+  --ink: #e8ecef;
+  --muted: #98a2a9;
+  --line: #343a40;
+  --steel-hi: #e3e6e8;
+  --steel: #b9bfc4;
+  --steel-lo: #7d858c;
+  --graphite: #24282c;
+  --slot: #0b0d0f;
+  --brand: #0e6170;
+  --brand-deep: #072e36;
+  --brand-ink: #f3fbfc;
+  --amber: #f3a83b;
+  --ok: #37d06b;
+  --warn: #f3c531;
+  --bad: #e2463b;
+  --paper: #f7f5ef;
+  --paper-ink: #2b2b2b;
+  --font-ui: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --bz: clamp(7px, 1.6vw, 12px);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { min-height: 100%; }
+body {
+  margin: 0;
+  background:
+    radial-gradient(1200px 700px at 30% 0%, var(--wall-hi), transparent 70%),
+    repeating-linear-gradient(0deg, transparent 0 79px, rgba(255,255,255,.025) 79px 80px),
+    repeating-linear-gradient(90deg, transparent 0 159px, rgba(255,255,255,.025) 159px 160px),
+    var(--wall);
+  color: var(--ink);
+  font: 15px/1.5 var(--font-ui);
+  padding-inline: 16px;
+  padding-block: 24px 40px;
+}
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+
+.stage {
+  max-width: 1080px; margin: 0 auto;
+  display: grid; gap: 28px;
+  grid-template-columns: minmax(0, 620px) minmax(0, 1fr);
+  align-items: start;
+}
+@media (max-width: 940px) { .stage { grid-template-columns: minmax(0, 1fr); justify-items: center; } .side { width: 100%; max-width: 620px; } }
+
+/* ---------- machine ---------- */
+.atm { width: 100%; max-width: 620px; filter: drop-shadow(0 30px 40px rgba(0,0,0,.55)); }
+.topper {
+  border-radius: 14px 14px 0 0;
+  background: linear-gradient(180deg, #11717f, var(--brand) 55%, #0a4b57);
+  padding: 14px 20px; display: flex; align-items: center; gap: 14px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.35), inset 0 -2px 0 rgba(0,0,0,.35), 0 0 40px rgba(20,170,190,.25);
+}
+.logo {
+  width: 40px; height: 40px; border-radius: 9px; flex: none;
+  background: var(--brand-ink); color: var(--brand);
+  display: grid; place-items: center;
+  font: 800 15px/1 var(--font-ui); font-stretch: 75%; letter-spacing: .02em;
+}
+.brandname { font-weight: 750; font-stretch: 112%; font-size: clamp(17px, 3.2vw, 22px); letter-spacing: .01em; color: var(--brand-ink); line-height: 1.1; }
+.brandsub { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: rgba(243,251,252,.75); }
+.topper .hours { margin-left: auto; text-align: right; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: rgba(243,251,252,.85); }
+.topper .hours b { display: block; font-size: 20px; letter-spacing: .02em; font-stretch: 80%; }
+
+.fascia {
+  position: relative;
+  border-radius: 0 0 10px 10px;
+  padding: clamp(12px, 3vw, 22px);
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,.07) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, var(--steel-hi), var(--steel) 40%, #a7aeb4 100%);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.7), inset 0 -3px 6px rgba(0,0,0,.25);
+  display: grid; gap: clamp(12px, 2.6vw, 20px);
+}
+.hood {
+  border-radius: 10px; padding: clamp(8px, 1.8vw, 14px);
+  background: linear-gradient(180deg, #2f3439, var(--graphite));
+  box-shadow: inset 0 3px 10px rgba(0,0,0,.7), 0 1px 0 rgba(255,255,255,.6);
+}
+.screen-row { display: grid; grid-template-columns: 8.5% 1fr 8.5%; gap: 1.6%; }
+.fdk-col { position: relative; padding-block: var(--bz); }
+.fdk {
+  position: absolute; left: 0; right: 0; height: 9%;
+  top: calc(var(--bz) + (100% - 2 * var(--bz)) * var(--c));
+  transform: translateY(-50%);
+  border: 0; border-radius: 4px; cursor: pointer;
+  background: linear-gradient(180deg, #d9dde0, #9aa1a7);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.9), 0 2px 0 #4c5257, 0 3px 5px rgba(0,0,0,.6);
+}
+.fdk::after { content: ""; position: absolute; inset: 35% 22%; border-radius: 2px; background: linear-gradient(180deg, #8d949a, #b8bec3); }
+.fdk:active, .fdk.pressed { transform: translateY(calc(-50% + 2px)); box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 0 0 #4c5257, 0 1px 2px rgba(0,0,0,.6); }
+.r1 { --c: .36; } .r2 { --c: .53; } .r3 { --c: .70; } .r4 { --c: .87; }
+
+.bezel {
+  padding: var(--bz); border-radius: 6px;
+  background: linear-gradient(145deg, #050607, #1b1f23);
+  box-shadow: inset 0 0 0 1px #3a4046;
+}
+.screen {
+  position: relative; aspect-ratio: 4 / 3; max-width: 100%; overflow: hidden;
+  container-type: inline-size;
+  background: radial-gradient(120% 90% at 20% 0%, #13798a 0%, #0b5664 45%, var(--brand-deep) 100%);
+  color: var(--brand-ink);
+  font-family: var(--font-ui);
+  border-radius: 2px;
+}
+.screen::after { /* glass glare + faint pixel grid */
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(115deg, rgba(255,255,255,.10) 0%, rgba(255,255,255,.03) 32%, transparent 33%),
+    repeating-linear-gradient(0deg, rgba(0,0,0,.06) 0 1px, transparent 1px 3px);
+}
+.scr-head {
+  position: absolute; left: 0; right: 0; top: 0; height: 9%;
+  display: flex; align-items: center; justify-content: space-between;
+  padding-inline: 3.2cqw; font-size: 2.5cqw; letter-spacing: .08em; text-transform: uppercase;
+  background: rgba(0,0,0,.22); color: rgba(243,251,252,.85);
+}
+.scr-head b { font-weight: 700; letter-spacing: .04em; }
+.scr-body { position: absolute; left: 6%; right: 6%; top: 13%; bottom: 4%; }
+.scr-title { margin: 0; font-size: 5.4cqw; line-height: 1.12; font-weight: 700; font-stretch: 96%; text-wrap: balance; }
+.scr-text { margin: 1.6cqw 0 0; font-size: 3cqw; line-height: 1.35; color: rgba(243,251,252,.86); text-wrap: balance; max-width: 82%; }
+.scr-text.err { color: #ffd9a8; font-weight: 600; }
+.center { text-align: center; }
+.center .scr-text { margin-inline: auto; }
+.field {
+  margin: 3cqw auto 0; width: 56%;
+  background: var(--brand-ink); color: var(--brand-deep);
+  border-radius: 1cqw; padding: 1.6cqw 2.4cqw;
+  font: 700 6cqw/1.1 var(--font-ui); letter-spacing: .12em; text-align: center;
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 0 0.4cqw 0 rgba(0,0,0,.12);
+}
+.field.pin { letter-spacing: .5em; }
+.field-hint { text-align: center; font-size: 2.5cqw; color: rgba(243,251,252,.7); margin-top: 1.2cqw; }
+.opt {
+  position: absolute; top: calc(var(--c) * 100%); transform: translateY(-50%);
+  width: 41%; height: 12.5%;
+  display: flex; align-items: center;
+  font-size: 3.15cqw; font-weight: 650; line-height: 1.1;
+  background: rgba(243,251,252,.95); color: var(--brand-deep);
+  border: 0; cursor: pointer; padding: 0 3cqw;
+}
+.opt.L { left: 0; border-radius: 0 1.4cqw 1.4cqw 0; }
+.opt.R { right: 0; border-radius: 1.4cqw 0 0 1.4cqw; justify-content: flex-end; text-align: right; }
+.opt.L::before, .opt.R::after { content: ""; flex: none; width: 1.6cqw; height: 1.6cqw; border-radius: 50%; background: var(--amber); }
+.opt.L::before { margin-right: 2cqw; }
+.opt.R::after { margin-left: 2cqw; }
+.opt.primary { background: var(--amber); color: #2c1d05; }
+.opt.primary::before, .opt.primary::after { background: #2c1d05; }
+.opt[disabled] { opacity: .45; cursor: default; }
+.spinner { width: 9cqw; height: 9cqw; margin: 5cqw auto 0; border-radius: 50%; border: 1cqw solid rgba(243,251,252,.2); border-top-color: var(--amber); animation: spin .9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.big-amt { font-size: 8cqw; font-weight: 750; font-stretch: 90%; font-variant-numeric: tabular-nums; margin-top: 1cqw; }
+.kv { display: grid; grid-template-columns: 1fr auto; gap: .6cqw 3cqw; margin-top: 3cqw; font-size: 3.3cqw; font-variant-numeric: tabular-nums; max-width: 78%; }
+.kv dt { color: rgba(243,251,252,.75); }
+.kv dd { margin: 0; text-align: right; font-weight: 700; }
+.stmt { width: 100%; border-collapse: collapse; font-size: 2.6cqw; margin-top: 2cqw; font-variant-numeric: tabular-nums; }
+.stmt td { padding: .55cqw 0; border-bottom: 1px solid rgba(243,251,252,.14); }
+.stmt td:last-child { text-align: right; font-weight: 650; }
+.stmt td:first-child { color: rgba(243,251,252,.7); width: 16%; }
+.counted { margin: 2.4cqw 0 0; font-size: 3.2cqw; font-variant-numeric: tabular-nums; display: grid; grid-template-columns: auto auto 1fr; gap: .5cqw 3cqw; max-width: 60%; }
+.counted span:nth-child(3n) { text-align: right; font-weight: 700; }
+.attract { margin: 4cqw auto 0; width: 36cqw; height: 22cqw; position: relative; }
+.attract .slotline { position: absolute; left: 4cqw; right: 4cqw; top: 3cqw; height: 1.4cqw; border-radius: 1cqw; background: #031417; box-shadow: 0 0 0 .5cqw var(--ok); animation: glow 1.2s ease-in-out infinite; }
+.attract .acard { position: absolute; left: 8cqw; right: 8cqw; height: 15cqw; top: 7cqw; border-radius: 1.4cqw; background: linear-gradient(135deg, #f3fbfc, #a8d6dd); animation: feed 2.4s ease-in-out infinite; }
+.attract .acard::before { content: ""; position: absolute; left: 3cqw; top: 3cqw; width: 4.2cqw; height: 3.2cqw; border-radius: .6cqw; background: var(--amber); }
+@keyframes feed { 0%, 15% { transform: translateY(6cqw); opacity: 0; } 35% { opacity: 1; } 75%, 100% { transform: translateY(-3cqw); opacity: 0; } }
+@keyframes glow { 50% { box-shadow: 0 0 0 .5cqw rgba(55,208,107,.2); } }
+.scr-foot { position: absolute; left: 0; right: 0; bottom: 3%; text-align: center; font-size: 2.3cqw; color: rgba(243,251,252,.6); letter-spacing: .06em; }
+
+/* ---------- lower fascia ---------- */
+.io { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: clamp(12px, 3vw, 24px); align-items: start; }
+.pinpad-wrap {
+  padding: clamp(8px, 1.8vw, 12px); border-radius: 10px;
+  background: linear-gradient(180deg, #8c949a, #c3c8cc);
+  box-shadow: inset 0 2px 5px rgba(0,0,0,.45), 0 1px 0 rgba(255,255,255,.7);
+}
+.pinpad { display: grid; grid-template-columns: repeat(3, 1fr) 1.45fr; gap: clamp(5px, 1.2vw, 8px); }
+.key {
+  position: relative; height: clamp(38px, 8vw, 50px); border: 0; border-radius: 6px; cursor: pointer;
+  background: linear-gradient(180deg, #f2f4f5, #c4c9cd 70%, #aab0b5);
+  box-shadow: inset 0 1px 0 #fff, 0 3px 0 #61686e, 0 4px 6px rgba(0,0,0,.45);
+  font: 700 clamp(16px, 3.6vw, 21px)/1 var(--font-ui); color: #23272a;
+}
+.key:active, .key.pressed { transform: translateY(2px); box-shadow: inset 0 1px 0 #fff, 0 1px 0 #61686e, 0 1px 2px rgba(0,0,0,.45); }
+.key.dot::after { content: ""; position: absolute; left: 50%; bottom: 18%; width: 5px; height: 5px; margin-left: -2.5px; border-radius: 50%; background: #6f777d; box-shadow: inset 0 1px 0 rgba(255,255,255,.6); }
+.key.blank { cursor: default; color: transparent; }
+.key.fn { font-size: clamp(10px, 2.2vw, 12.5px); letter-spacing: .06em; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.key.cancel { background: linear-gradient(180deg, #f0574c, #b8281f); color: #fff; box-shadow: inset 0 1px 0 #ff9a92, 0 3px 0 #6d140f, 0 4px 6px rgba(0,0,0,.45); }
+.key.clear  { background: linear-gradient(180deg, #ffd84a, #d6a90f); color: #3a2a00; box-shadow: inset 0 1px 0 #fff2a6, 0 3px 0 #7a5e00, 0 4px 6px rgba(0,0,0,.45); }
+.key.enter  { background: linear-gradient(180deg, #45cf6f, #1d8f3e); color: #fff; box-shadow: inset 0 1px 0 #a6f0bd, 0 3px 0 #0c4d1f, 0 4px 6px rgba(0,0,0,.45); }
+.key .sym { font-size: 1.25em; line-height: 1; }
+.epp-label { margin-top: 8px; font: 600 10px/1 var(--font-mono); letter-spacing: .14em; color: #3c4348; text-align: center; }
+
+@media (max-width: 480px) { .io { grid-template-columns: minmax(0, 1fr); } .devices { grid-template-columns: 1fr 1fr; } }
+.devices { display: grid; gap: clamp(10px, 2.4vw, 16px); }
+.device { display: grid; justify-items: center; }
+.dlabel { font-size: 10.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #3c4348; margin-bottom: 6px; display: flex; gap: 6px; align-items: center; }
+.slot-bezel {
+  position: relative; width: 100%; max-width: 170px; height: 34px; border-radius: 17px;
+  background: linear-gradient(180deg, #1f2327, #3b4248);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 2px 4px rgba(0,0,0,.4);
+  display: grid; place-items: center;
+}
+.slot-bezel .glowring { position: absolute; inset: 3px; border-radius: 14px; box-shadow: 0 0 0 2px rgba(55,208,107,.0) inset; transition: box-shadow .3s; }
+.slot-bezel.blink .glowring { animation: ring 0.9s steps(1) infinite; }
+.slot-bezel.red .glowring { box-shadow: 0 0 0 2px var(--bad) inset, 0 0 12px var(--bad); }
+@keyframes ring { 0% { box-shadow: 0 0 0 2px var(--ok) inset, 0 0 14px rgba(55,208,107,.8); } 50% { box-shadow: 0 0 0 2px rgba(55,208,107,.15) inset; } }
+.slot { width: 76%; height: 6px; border-radius: 3px; background: var(--slot); box-shadow: inset 0 2px 2px #000; }
+.mouth { width: 100%; max-width: 170px; height: 70px; overflow: hidden; perspective: 240px; perspective-origin: 50% -40%; }
+.mouth .plane { width: 100%; height: 100%; transform-origin: 50% 0; transform: rotateX(48deg); }
+.ccard {
+  width: 72%; aspect-ratio: 85.6 / 54; margin: 0 auto; border-radius: 6px; position: relative; cursor: pointer;
+  transform: translateY(-105%); transition: transform 1s cubic-bezier(.5,0,.3,1);
+  box-shadow: 0 6px 10px rgba(0,0,0,.35);
+}
+.ccard.out { transform: translateY(-14%); }
+.ccard.part { transform: translateY(-55%); }
+.paper {
+  width: 62%; margin: 0 auto; min-height: 140px; cursor: pointer; padding: 6px 5px;
+  background: var(--paper); color: var(--paper-ink);
+  font: 4.2px/1.25 var(--font-mono); white-space: pre; overflow: hidden;
+  transform: translateY(-100%); transition: transform 2.2s steps(22);
+  box-shadow: 0 6px 10px rgba(0,0,0,.3);
+}
+.paper.out { transform: translateY(-46%); }
+.led { width: 7px; height: 7px; border-radius: 50%; background: #3a4a3f; box-shadow: inset 0 1px 1px rgba(0,0,0,.5); }
+.led.on { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+.led.blink { animation: led .7s steps(1) infinite; }
+@keyframes led { 0% { background: var(--ok); box-shadow: 0 0 7px var(--ok); } 50% { background: #3a4a3f; box-shadow: none; } }
+
+.dispenser { display: grid; justify-items: center; }
+.shutter-frame {
+  position: relative; width: min(78%, 380px); height: 34px; border-radius: 6px;
+  background: linear-gradient(180deg, #1c2024, #3a4147);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 2px 5px rgba(0,0,0,.4);
+  padding: 7px 10px;
+}
+.shutter-slot { position: relative; height: 100%; border-radius: 3px; background: var(--slot); overflow: hidden; box-shadow: inset 0 3px 4px #000; }
+.shutter { position: absolute; inset: 0; background: repeating-linear-gradient(90deg, #6d757c 0 6px, #5d656b 6px 7px); transition: transform .5s ease; }
+.shutter.open { transform: translateY(100%); }
+.shutter-frame.blink { box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 2px 5px rgba(0,0,0,.4), 0 0 0 2px var(--ok); animation: frame .8s steps(1) infinite; }
+@keyframes frame { 50% { box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 2px 5px rgba(0,0,0,.4), 0 0 0 2px rgba(55,208,107,.15); } }
+.cash-mouth { width: min(70%, 340px); height: 64px; overflow: hidden; perspective: 260px; perspective-origin: 50% -30%; }
+.cash-mouth .plane { width: 100%; height: 100%; transform-origin: 50% 0; transform: rotateX(50deg); }
+.stack { position: relative; width: 62%; margin: 0 auto; aspect-ratio: 2.1; transform: translateY(-105%); transition: transform .9s cubic-bezier(.4,0,.3,1); cursor: pointer; }
+.stack.out { transform: translateY(-22%); }
+.note {
+  position: absolute; inset: 0; border-radius: 3px; display: flex; align-items: center; justify-content: space-between;
+  padding: 0 10px; font: 800 22px/1 var(--font-ui); font-stretch: 80%; color: rgba(0,0,0,.55);
+  box-shadow: 0 1px 0 rgba(0,0,0,.25);
+}
+.note small { font: 700 9px/1 var(--font-mono); letter-spacing: .2em; color: rgba(0,0,0,.45); }
+.n10 { background: linear-gradient(90deg, #d98a7a, #c9675a 60%, #d98a7a); }
+.n20 { background: linear-gradient(90deg, #86a9db, #4f7fc2 60%, #86a9db); }
+.n50 { background: linear-gradient(90deg, #f0bf78, #e09a3c 60%, #f0bf78); }
+.plate { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; font: 600 10px/1.4 var(--font-mono); letter-spacing: .1em; color: #4a5156; border-top: 1px solid rgba(0,0,0,.15); padding-top: 10px; }
+.hint {
+  margin: 16px auto 0; max-width: 620px; text-align: center; font-size: 14px; color: var(--muted); min-height: 1.5em;
+}
+.hint b { color: var(--amber); font-weight: 650; }
+
+/* ---------- side panel ---------- */
+.side { display: grid; gap: 18px; min-width: 0; }
+.panel { background: rgba(255,255,255,.035); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+.panel h2 { margin: 0 0 12px; font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); font-weight: 700; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.cards { display: grid; gap: 14px; }
+.wcard-row { display: grid; grid-template-columns: minmax(0, 220px) auto; gap: 12px; align-items: center; }
+.bankcard {
+  position: relative; width: 100%; aspect-ratio: 85.6 / 54; border-radius: 10px; border: 0; padding: 0; cursor: pointer; text-align: left; overflow: hidden;
+  box-shadow: 0 8px 18px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.25);
+  transition: transform .2s ease;
+}
+.bankcard:hover:not([disabled]) { transform: translateY(-3px) rotate(-1deg); }
+.bankcard[disabled] { cursor: not-allowed; }
+.bankcard.gone { opacity: .22; filter: grayscale(1); }
+.cf { position: absolute; inset: 0; padding: 8% 7%; display: flex; flex-direction: column; color: #f4f7f8; font-family: var(--font-ui); }
+.cf .bn { font-weight: 750; font-stretch: 110%; font-size: clamp(9px, 1.5cqw + 6px, 13px); letter-spacing: .02em; }
+.cf .chip { width: 17%; aspect-ratio: 1.3; border-radius: 4px; margin-top: 9%; background: linear-gradient(135deg, #f6dc8c, #c79a3a); box-shadow: inset 0 0 0 1px rgba(0,0,0,.2); }
+.cf .num { margin-top: auto; font: 600 clamp(9px, 2.6vw, 13.5px)/1 var(--font-mono); letter-spacing: .08em; text-shadow: 0 1px 0 rgba(0,0,0,.4); white-space: nowrap; }
+.cf .meta { display: flex; justify-content: space-between; margin-top: 6%; font: 600 clamp(7px, 1.8vw, 9.5px)/1 var(--font-mono); letter-spacing: .1em; opacity: .9; }
+.cf .type { position: absolute; right: 7%; top: 8%; font: 800 italic clamp(8px, 2vw, 11px)/1 var(--font-ui); letter-spacing: .06em; opacity: .9; }
+.c-a { background: linear-gradient(135deg, #1b6f7d, #0a3540 70%), #0a3540; }
+.c-b { background: linear-gradient(135deg, #8a3247, #3d1220 75%), #3d1220; }
+.c-c { background: linear-gradient(135deg, #6f767c, #383d42 75%), #383d42; }
+.ccard .cf { padding: 6% 6%; }
+.ccard .cf .num { font-size: 6px; }
+.ccard .cf .bn, .ccard .cf .meta, .ccard .cf .type { font-size: 5px; }
+.sticky {
+  background: #f6e27a; color: #3a3110; padding: 8px 10px; border-radius: 2px; transform: rotate(2.5deg);
+  font: 600 12px/1.35 var(--font-mono); box-shadow: 0 4px 8px rgba(0,0,0,.35); white-space: nowrap;
+}
+.sticky small { display: block; font-weight: 400; font-size: 10.5px; opacity: .8; }
+.cashrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
+.chipnote { display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 4px; font: 700 13px/1.2 var(--font-ui); color: #1d1d1d; font-variant-numeric: tabular-nums; }
+.total { margin-left: auto; font-weight: 700; font-variant-numeric: tabular-nums; }
+.btn {
+  border: 1px solid var(--line); background: rgba(255,255,255,.06); color: var(--ink); border-radius: 6px;
+  padding: 7px 12px; cursor: pointer; font-size: 13px; font-weight: 600;
+}
+.btn:hover:not([disabled]) { background: rgba(255,255,255,.12); }
+.btn[disabled] { opacity: .4; cursor: default; }
+.btn.go { background: var(--amber); color: #2c1d05; border-color: transparent; }
+.muted { color: var(--muted); font-size: 13px; }
+.receipts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.cass { display: grid; grid-template-columns: 74px 1fr 64px; gap: 6px 10px; align-items: center; font-size: 13px; font-variant-numeric: tabular-nums; }
+.bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,.08); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--ok); transition: width .4s; }
+.bar i.low { background: var(--warn); }
+.bar i.empty { background: var(--bad); }
+.journal {
+  margin-top: 12px; height: 210px; overflow: auto; background: #0e1012; border-radius: 6px; padding: 8px 10px;
+  font: 11.5px/1.5 var(--font-mono); color: #a9d8b5; white-space: pre; border: 1px solid var(--line);
+}
+.controls { display: flex; flex-wrap: wrap; gap: 8px; }
+.keys { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
+kbd { font: 600 11px/1 var(--font-mono); padding: 2px 5px; border-radius: 3px; border: 1px solid var(--line); background: rgba(255,255,255,.06); color: var(--ink); }
+
+.modal { position: fixed; inset: 0; background: rgba(5,6,7,.72); display: grid; place-items: center; padding: 16px; z-index: 10; }
+.modal-inner { display: grid; gap: 12px; justify-items: center; max-height: 100%; overflow: auto; }
+.receipt {
+  background: var(--paper); color: var(--paper-ink); padding: 18px 16px 26px; width: min(340px, 100%);
+  font: 12px/1.45 var(--font-mono); white-space: pre; overflow-x: auto;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 95% calc(100% - 8px), 90% 100%, 85% calc(100% - 8px), 80% 100%, 75% calc(100% - 8px), 70% 100%, 65% calc(100% - 8px), 60% 100%, 55% calc(100% - 8px), 50% 100%, 45% calc(100% - 8px), 40% 100%, 35% calc(100% - 8px), 30% 100%, 25% calc(100% - 8px), 20% 100%, 15% calc(100% - 8px), 10% 100%, 5% calc(100% - 8px), 0 100%);
+}
+.foot { max-width: 1080px; margin: 28px auto 0; font-size: 12.5px; color: var(--muted); text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01s !important; animation-iteration-count: 1 !important; transition-duration: .15s !important; }
+  .slot-bezel.blink .glowring { box-shadow: 0 0 0 2px var(--ok) inset; }
+}
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div>
+    <div class="atm" aria-label="ATM">
+      <div class="topper">
+        <div class="logo" aria-hidden="true">B24</div>
+        <div>
+          <div class="brandname">Brainhub24 Bank</div>
+          <div class="brandsub">Cash · Deposits · Transfers</div>
+        </div>
+        <div class="hours"><b>24/7</b>Self-service</div>
+      </div>
+      <div class="fascia">
+        <div class="hood">
+          <div class="screen-row">
+            <div class="fdk-col">
+              <button class="fdk r1" data-fdk="L1" aria-label="Left key 1"></button>
+              <button class="fdk r2" data-fdk="L2" aria-label="Left key 2"></button>
+              <button class="fdk r3" data-fdk="L3" aria-label="Left key 3"></button>
+              <button class="fdk r4" data-fdk="L4" aria-label="Left key 4"></button>
+            </div>
+            <div class="bezel">
+              <div class="screen" id="screen" role="region" aria-live="polite" aria-label="ATM screen">
+                <div class="scr-head"><b>Brainhub24 Bank</b><span id="clock">--:--</span></div>
+                <div class="scr-body" id="scr-body"></div>
+                <div id="scr-opts"></div>
+              </div>
+            </div>
+            <div class="fdk-col">
+              <button class="fdk r1" data-fdk="R1" aria-label="Right key 1"></button>
+              <button class="fdk r2" data-fdk="R2" aria-label="Right key 2"></button>
+              <button class="fdk r3" data-fdk="R3" aria-label="Right key 3"></button>
+              <button class="fdk r4" data-fdk="R4" aria-label="Right key 4"></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="io">
+          <div class="pinpad-wrap">
+            <div class="pinpad" id="pinpad">
+              <button class="key" data-key="1">1</button>
+              <button class="key" data-key="2">2</button>
+              <button class="key" data-key="3">3</button>
+              <button class="key fn cancel" data-key="cancel"><span class="sym" aria-hidden="true">✕</span>Cancel</button>
+              <button class="key" data-key="4">4</button>
+              <button class="key dot" data-key="5">5</button>
+              <button class="key" data-key="6">6</button>
+              <button class="key fn clear" data-key="clear"><span class="sym" aria-hidden="true">‹</span>Clear</button>
+              <button class="key" data-key="7">7</button>
+              <button class="key" data-key="8">8</button>
+              <button class="key" data-key="9">9</button>
+              <button class="key fn enter" data-key="enter"><span class="sym" aria-hidden="true">○</span>Enter</button>
+              <button class="key blank" tabindex="-1" aria-hidden="true">.</button>
+              <button class="key" data-key="0">0</button>
+              <button class="key blank" tabindex="-1" aria-hidden="true">.</button>
+              <button class="key blank" tabindex="-1" aria-hidden="true">.</button>
+            </div>
+            <div class="epp-label">ENCRYPTING PIN PAD · EPP-7</div>
+          </div>
+          <div class="devices">
+            <div class="device">
+              <div class="dlabel">Card <span class="led" id="led-card"></span></div>
+              <div class="slot-bezel" id="reader"><span class="glowring"></span><span class="slot"></span></div>
+              <div class="mouth"><div class="plane"><div class="ccard" id="card-in" hidden></div></div></div>
+            </div>
+            <div class="device">
+              <div class="dlabel">Receipt <span class="led" id="led-rcpt"></span></div>
+              <div class="slot-bezel"><span class="slot"></span></div>
+              <div class="mouth"><div class="plane"><div class="paper" id="paper" hidden></div></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dispenser">
+          <div class="dlabel">Cash <span class="led" id="led-cash"></span></div>
+          <div class="shutter-frame" id="shutter-frame"><div class="shutter-slot"><div class="shutter" id="shutter"></div></div></div>
+          <div class="cash-mouth"><div class="plane"><div class="stack" id="stack" hidden></div></div></div>
+        </div>
+
+        <div class="plate"><span>ATM ID BH24-0042</span><span>DEMO BRANCH · HAUPTSTRASSE 1</span><span>SERVICE 0800 000 0000</span></div>
+      </div>
+    </div>
+    <p class="hint" id="hint"></p>
+  </div>
+
+  <div class="side">
+    <section class="panel">
+      <h2>Your wallet <button class="btn" id="btn-sound" aria-pressed="true">Sound on</button></h2>
+      <div class="cards" id="cards"></div>
+      <div style="margin-top:16px">
+        <div class="muted">Cash</div>
+        <div class="cashrow" id="cash"></div>
+        <div style="margin-top:10px"><button class="btn go" id="btn-insert-notes" disabled>Insert notes into ATM</button></div>
+      </div>
+      <div style="margin-top:14px">
+        <div class="muted">Receipts</div>
+        <div class="receipts" id="receipts"></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Operator view <button class="btn" id="btn-reset">Reset demo</button></h2>
+      <div class="cass" id="cassettes"></div>
+      <div class="journal" id="journal" tabindex="0" aria-label="Electronic journal"></div>
+      <p class="keys">Keyboard: <kbd>0</kbd>–<kbd>9</kbd> digits, <kbd>Enter</kbd> confirm, <kbd>Backspace</kbd> clear, <kbd>Esc</kbd> cancel.</p>
+    </section>
+  </div>
+</div>
+
+<p class="foot">Demo only. Brainhub24 Bank, the cards, names and account numbers are fictional; no real money or card data is involved.<br>© 2026 Brainhub24 ATM Simulator.</p>
+
+<div class="modal" id="modal" hidden>
+  <div class="modal-inner">
+    <div class="receipt" id="modal-receipt"></div>
+    <button class="btn go" id="modal-close">Close</button>
+  </div>
+</div>
+
+<script>
+(() => {
+"use strict";
+
+/* ================= data ================= */
+const STORE_KEY = "bh24-atm-demo-v1";
+const DAY = 864e5;
+const today = () => new Date().toISOString().slice(0, 10);
+
+function seedTx(entries) {
+  const now = Date.now();
+  return entries.map(([daysAgo, desc, amt]) => ({ t: now - daysAgo * DAY, desc, amt }));
+}
+function defaults() {
+  return {
+    accounts: {
+      A: { cls: "c-a", pan: "4921 7300 0042 4821", holder: "ALEX MORGAN", exp: "09/29", pin: "1234", tries: 0, captured: false,
+           checking: 245075, savings: 1250000, acctNo: "1004821", limit: 100000, withdrawn: 0, day: today(),
+           tx: seedTx([[12, "Salary · Northwind GmbH", 320000], [11, "Rent · Hausverwaltung", -98000], [8, "Card · Grocery store", -6420],
+                       [6, "Card · Pharmacy", -1895], [4, "ATM withdrawal", -10000], [2, "Transfer from S. Rivera", 2500], [1, "Card · Bakery", -740]]) },
+      B: { cls: "c-b", pan: "5389 1100 7764 7710", holder: "SAM RIVERA", exp: "02/28", pin: "2580", tries: 0, captured: false,
+           checking: 8640, savings: 0, acctNo: "1007710", limit: 50000, withdrawn: 0, day: today(),
+           tx: seedTx([[9, "Student grant", 45000], [7, "Mobile phone", -2999], [5, "Card · Café", -460], [2, "Transfer to A. Morgan", -2500], [1, "Card · Bookshop", -1890]]) },
+      C: { cls: "c-c", pan: "4921 7300 0019 3307", holder: "JO PATEL", exp: "03/25", pin: "1111", tries: 0, captured: false,
+           checking: 51200, savings: 0, acctNo: "1003307", limit: 100000, withdrawn: 0, day: today(), tx: [] }
+    },
+    wallet: { 10: 0, 20: 2, 50: 1 },
+    cassettes: { 10: 120, 20: 150, 50: 90 },
+    capacity: { 10: 200, 20: 200, 50: 200 },
+    retractBin: 0,
+    receipts: [],
+    trn: 3417,
+    journal: []
+  };
+}
+let st;
+try { st = JSON.parse(localStorage.getItem(STORE_KEY)) || defaults(); } catch (e) { st = defaults(); }
+if (!st || !st.accounts || !st.cassettes) st = defaults();
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(st)); } catch (e) { /* storage unavailable: demo still works */ } }
+
+/* ================= i18n ================= */
+const T = {
+  en: {
+    welcome: "Welcome", insert: "Please insert your card", insertSub: "Chip side up, chip first.",
+    noCash: "Withdrawals unavailable · deposits only",
+    reading: "Reading your card", dontRemove: "Please do not remove your card.",
+    expired: "This card has expired", expiredSub: "Please contact your bank for a replacement card.",
+    pinTitle: "Please enter your PIN", pinSub: "Cover the keypad with your hand. Press ENTER to confirm.",
+    pinShort: "Your PIN has at least 4 digits.", wrongPin: n => `Incorrect PIN. ${n} ${n === 1 ? "attempt" : "attempts"} remaining.`,
+    checkingPin: "Checking your PIN", wait: "Please wait",
+    retained: "Your card has been retained", retainedSub: "The PIN was entered incorrectly 3 times. For your security this ATM has kept the card. Please contact your bank.",
+    notTaken: "Card retained", notTakenSub: "The card was not taken in time and has been kept by the ATM for your security.",
+    menu: "Select a service", other: "Other amount", balance: "Balance", deposit: "Deposit cash", transfer: "Transfer", more: "More services",
+    statement: "Mini statement", changePin: "Change PIN", returnCard: "Return card", back: "Back", mainMenu: "Main menu",
+    amountTitle: "Enter the amount", amountSub: "Multiples of €10. Notes available:",
+    confirm: "Confirm", cancel: "Cancel", yes: "Yes", no: "No",
+    notMultiple: "Please enter an amount in multiples of €10.", zero: "Please enter an amount.",
+    overLimit: v => `This exceeds your daily withdrawal limit. You can still withdraw ${v} today.`,
+    insufficient: v => `Insufficient funds. Available balance: ${v}.`,
+    noNotes: "This amount cannot be paid with the notes currently in the ATM. Please choose a different amount.",
+    tryAgain: "Try another amount", receiptQ: "Would you like a receipt?", processing: "Processing your request",
+    takeCard: "Please take your card", takeCardSub: "Your cash will follow.", takeCardEnd: "Thank you. Please remember your card.",
+    counting: "Counting your notes", takeCash: "Please take your cash", takeCashSub: "Cash not taken within 30 seconds is retracted.",
+    retracted: "Cash retracted", retractedSub: "The notes were not taken and have been retracted. The amount has been returned to your account.",
+    thanks: "Thank you for banking with Brainhub24", takeReceipt: "Please take your receipt.",
+    balTitle: "Your balances", checkingAcc: "Current account", savingsAcc: "Savings account", availToday: "Cash available today",
+    print: "Print receipt", cont: "Continue", anotherQ: "Would you like another service?",
+    depTitle: "Insert your notes", depSub: "Place the notes flat in the open slot. Up to 50 notes, no coins.",
+    depCounted: "Notes counted", depConfirm: "Deposit", depReturn: "Return notes", depDone: "Deposit complete",
+    depReturned: "Please take your notes", newBal: "New balance",
+    trTitle: "Select a transfer", trToSav: "Current → Savings", trFromSav: "Savings → Current", trOther: "To another account",
+    trAcct: "Enter the account number", trAcctSub: "7 digits. Account numbers are printed on the demo cards.", trBadAcct: "No account with this number was found.",
+    trOwn: "Use the options for your own accounts instead.",
+    trAmt: "Enter the transfer amount", trAmtSub: "Type the amount in cents: 1 2 5 0 0 = €125.00",
+    trConfirm: "Please confirm the transfer", trTo: "To", trFrom: "From", trAmount: "Amount", trDone: "Transfer complete",
+    stmtTitle: "Recent transactions", noTx: "No transactions yet.",
+    newPin: "Enter your new PIN", newPinSub: "4 digits. Avoid easy combinations such as 1234.", repeatPin: "Enter your new PIN again",
+    pinMismatch: "The two PINs did not match. Please start again.", pinSame: "The new PIN must be different from the current one.",
+    pinChanged: "Your PIN has been changed", cancelled: "Transaction cancelled",
+    moreTime: "Do you need more time?", moreTimeSub: n => `Your session will end in ${n} seconds.`,
+    emptyWallet: "Your wallet has no notes to deposit."
+  },
+  de: {
+    welcome: "Willkommen", insert: "Bitte Karte einführen", insertSub: "Chip nach oben, Chip zuerst.",
+    noCash: "Auszahlung nicht möglich · nur Einzahlungen",
+    reading: "Ihre Karte wird gelesen", dontRemove: "Bitte entnehmen Sie Ihre Karte nicht.",
+    expired: "Diese Karte ist abgelaufen", expiredSub: "Bitte wenden Sie sich für eine Ersatzkarte an Ihre Bank.",
+    pinTitle: "Bitte geben Sie Ihre PIN ein", pinSub: "Verdecken Sie die Tastatur mit der Hand. Mit ENTER bestätigen.",
+    pinShort: "Ihre PIN hat mindestens 4 Ziffern.", wrongPin: n => `Falsche PIN. Noch ${n} ${n === 1 ? "Versuch" : "Versuche"}.`,
+    checkingPin: "Ihre PIN wird geprüft", wait: "Bitte warten",
+    retained: "Ihre Karte wurde einbehalten", retainedSub: "Die PIN wurde 3-mal falsch eingegeben. Zu Ihrer Sicherheit wurde die Karte einbehalten. Bitte wenden Sie sich an Ihre Bank.",
+    notTaken: "Karte einbehalten", notTakenSub: "Die Karte wurde nicht rechtzeitig entnommen und zu Ihrer Sicherheit einbehalten.",
+    menu: "Bitte wählen Sie", other: "Anderer Betrag", balance: "Kontostand", deposit: "Einzahlung", transfer: "Überweisung", more: "Weitere Services",
+    statement: "Umsätze", changePin: "PIN ändern", returnCard: "Karte zurück", back: "Zurück", mainMenu: "Hauptmenü",
+    amountTitle: "Betrag eingeben", amountSub: "Vielfache von 10 €. Verfügbare Scheine:",
+    confirm: "Bestätigen", cancel: "Abbrechen", yes: "Ja", no: "Nein",
+    notMultiple: "Bitte einen Betrag in Vielfachen von 10 € eingeben.", zero: "Bitte einen Betrag eingeben.",
+    overLimit: v => `Der Betrag übersteigt Ihr Tageslimit. Heute noch verfügbar: ${v}.`,
+    insufficient: v => `Nicht genügend Guthaben. Verfügbar: ${v}.`,
+    noNotes: "Dieser Betrag kann mit den vorhandenen Scheinen nicht ausgezahlt werden. Bitte wählen Sie einen anderen Betrag.",
+    tryAgain: "Anderer Betrag", receiptQ: "Möchten Sie einen Beleg?", processing: "Ihr Auftrag wird bearbeitet",
+    takeCard: "Bitte entnehmen Sie Ihre Karte", takeCardSub: "Danach erhalten Sie Ihr Geld.", takeCardEnd: "Vielen Dank. Bitte vergessen Sie Ihre Karte nicht.",
+    counting: "Ihre Scheine werden gezählt", takeCash: "Bitte entnehmen Sie Ihr Geld", takeCashSub: "Nicht entnommenes Geld wird nach 30 Sekunden eingezogen.",
+    retracted: "Geld eingezogen", retractedSub: "Die Scheine wurden nicht entnommen und eingezogen. Der Betrag wurde Ihrem Konto gutgeschrieben.",
+    thanks: "Vielen Dank für Ihren Besuch", takeReceipt: "Bitte entnehmen Sie Ihren Beleg.",
+    balTitle: "Ihre Kontostände", checkingAcc: "Girokonto", savingsAcc: "Sparkonto", availToday: "Heute verfügbar (bar)",
+    print: "Beleg drucken", cont: "Weiter", anotherQ: "Möchten Sie einen weiteren Service nutzen?",
+    depTitle: "Bitte Scheine einlegen", depSub: "Legen Sie die Scheine flach in den offenen Schacht. Bis zu 50 Scheine, keine Münzen.",
+    depCounted: "Gezählte Scheine", depConfirm: "Einzahlen", depReturn: "Scheine zurück", depDone: "Einzahlung abgeschlossen",
+    depReturned: "Bitte entnehmen Sie Ihre Scheine", newBal: "Neuer Kontostand",
+    trTitle: "Überweisung wählen", trToSav: "Giro → Sparkonto", trFromSav: "Sparkonto → Giro", trOther: "An anderes Konto",
+    trAcct: "Kontonummer eingeben", trAcctSub: "7 Ziffern. Kontonummern stehen auf den Demo-Karten.", trBadAcct: "Kein Konto mit dieser Nummer gefunden.",
+    trOwn: "Bitte nutzen Sie die Optionen für Ihre eigenen Konten.",
+    trAmt: "Überweisungsbetrag eingeben", trAmtSub: "Betrag in Cent: 1 2 5 0 0 = 125,00 €",
+    trConfirm: "Bitte Überweisung bestätigen", trTo: "An", trFrom: "Von", trAmount: "Betrag", trDone: "Überweisung ausgeführt",
+    stmtTitle: "Letzte Umsätze", noTx: "Noch keine Umsätze.",
+    newPin: "Neue PIN eingeben", newPinSub: "4 Ziffern. Vermeiden Sie einfache Folgen wie 1234.", repeatPin: "Neue PIN wiederholen",
+    pinMismatch: "Die PINs stimmen nicht überein. Bitte erneut beginnen.", pinSame: "Die neue PIN muss sich von der bisherigen unterscheiden.",
+    pinChanged: "Ihre PIN wurde geändert", cancelled: "Vorgang abgebrochen",
+    moreTime: "Benötigen Sie mehr Zeit?", moreTimeSub: n => `Ihre Sitzung endet in ${n} Sekunden.`,
+    emptyWallet: "In Ihrer Geldbörse sind keine Scheine."
+  }
+};
+const ui = { lang: "en", state: "idle", id: null, buf: "", cur: null, timers: [], ending: false };
+const t = (k, ...a) => { const v = T[ui.lang][k]; return typeof v === "function" ? v(...a) : v; };
+const acct = () => st.accounts[ui.id];
+const fmt = c => new Intl.NumberFormat(ui.lang === "de" ? "de-DE" : "en-IE", { style: "currency", currency: "EUR" }).format(c / 100);
+const fmtPlain = c => (c / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const esc = s => String(s).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const $ = s => document.querySelector(s);
+const last4 = a => a.pan.slice(-4);
+
+/* ================= sound ================= */
+const sfx = {
+  on: true, ctx: null,
+  ac() { if (!this.on) return null; try { this.ctx = this.ctx || new (window.AudioContext || window.webkitAudioContext)(); if (this.ctx.state === "suspended") this.ctx.resume(); } catch (e) { return null; } return this.ctx; },
+  tone(f, d, vol = .05, type = "square", at = 0) {
+    const c = this.ac(); if (!c) return;
+    const o = c.createOscillator(), g = c.createGain(), s = c.currentTime + at;
+    o.type = type; o.frequency.value = f; g.gain.setValueAtTime(vol, s); g.gain.exponentialRampToValueAtTime(.0001, s + d);
+    o.connect(g).connect(c.destination); o.start(s); o.stop(s + d + .02);
+  },
+  noise(d, freq, vol = .08, at = 0, q = 1) {
+    const c = this.ac(); if (!c) return;
+    const len = Math.max(1, Math.floor(c.sampleRate * d)), b = c.createBuffer(1, len, c.sampleRate), ch = b.getChannelData(0);
+    for (let i = 0; i < len; i++) ch[i] = Math.random() * 2 - 1;
+    const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain(), s = c.currentTime + at;
+    f.type = "bandpass"; f.frequency.value = freq; f.Q.value = q;
+    g.gain.setValueAtTime(.0001, s); g.gain.linearRampToValueAtTime(vol, s + .03); g.gain.setValueAtTime(vol, s + d - .05); g.gain.linearRampToValueAtTime(.0001, s + d);
+    src.buffer = b; src.connect(f).connect(g).connect(c.destination); src.start(s);
+  },
+  beep() { this.tone(1180, .085, .045); },
+  err() { this.tone(420, .2, .05); },
+  motor(d = .9) { this.noise(d, 420, .12, 0, .7); this.tone(95, d, .025, "sawtooth"); },
+  count(n) { for (let i = 0; i < n; i++) this.noise(.035, 2400, .1, .25 + i * .075, 2); this.motor(.35 + n * .075); },
+  printer() { for (let i = 0; i < 18; i++) this.noise(.06, 3200, .05, i * .11, 3); },
+  shutter() { this.noise(.45, 700, .09, 0, .9); },
+  chime() { this.tone(880, .12, .03, "sine"); this.tone(1320, .2, .03, "sine", .12); }
+};
+
+/* ================= journal ================= */
+function jr(msg) {
+  const d = new Date();
+  const ts = d.toTimeString().slice(0, 8);
+  st.journal.push(`${ts} ${msg}`);
+  if (st.journal.length > 300) st.journal.splice(0, st.journal.length - 300);
+  save(); renderJournal();
+}
+function nextTrn() { st.trn += 1; save(); return st.trn; }
+function authCode() { return Math.random().toString(36).slice(2, 8).toUpperCase(); }
+
+/* ================= cash logic ================= */
+const DENOMS = [50, 20, 10];
+function noteMix(euros) {
+  // Fewest notes (max 40) that fit what the cassettes hold.
+  let best = null;
+  const acc = {};
+  (function rec(i, rem, count) {
+    if (best && count >= best.count) return;
+    if (rem === 0) { best = { notes: { ...acc }, count }; return; }
+    if (i >= DENOMS.length) return;
+    const d = DENOMS[i], max = Math.min(st.cassettes[d], Math.floor(rem / d));
+    for (let k = max; k >= 0; k--) { acc[d] = k; rec(i + 1, rem - k * d, count + k); }
+    acc[d] = 0;
+  })(0, euros, 0);
+  if (!best || best.count > 40) return null;
+  return best.notes;
+}
+const notesTotal = n => DENOMS.reduce((s, d) => s + (n[d] || 0) * d, 0);
+const notesCount = n => DENOMS.reduce((s, d) => s + (n[d] || 0), 0);
+const notesStr = n => DENOMS.filter(d => n[d]).map(d => `${d}x${n[d]}`).join(" ");
+function rollDay(a) { if (a.day !== today()) { a.day = today(); a.withdrawn = 0; } }
+
+/* ================= hardware ================= */
+const hw = {
+  cardEl: $("#card-in"), paperEl: $("#paper"), stackEl: $("#stack"), shutter: $("#shutter"), frame: $("#shutter-frame"), reader: $("#reader"),
+  led(id, mode) { const el = $(id); el.classList.toggle("on", mode === "on"); el.classList.toggle("blink", mode === "blink"); },
+  cardFace(a) {
+    return `<div class="cf ${a.cls}" style="border-radius:6px"><span class="bn">Brainhub24</span><span class="type">DEBIT</span><span class="chip"></span><span class="num">${a.pan}</span></div>`;
+  },
+  async cardIn(a) {
+    this.reader.classList.remove("blink"); this.led("#led-card", "off");
+    const c = this.cardEl;
+    c.innerHTML = this.cardFace(a); c.className = "ccard"; c.style.transition = "none"; c.classList.add("out"); c.hidden = false;
+    void c.offsetWidth; c.style.transition = "";
+    sfx.motor(1);
+    c.classList.remove("out");
+    await wait(1050);
+  },
+  cardOut(timeout = 30000) {
+    return new Promise(resolve => {
+      const c = this.cardEl; c.hidden = false; void c.offsetWidth;
+      sfx.motor(.9); c.classList.add("out");
+      this.reader.classList.add("blink"); this.led("#led-card", "blink");
+      hint("Click the card sticking out of the reader to take it.");
+      let beeper = setInterval(() => sfx.tone(1500, .12, .035), 1600);
+      const done = taken => {
+        clearInterval(beeper); clearTimeout(tm); c.onclick = null;
+        this.reader.classList.remove("blink"); this.led("#led-card", "off");
+        if (taken) { c.classList.remove("out"); c.hidden = true; }
+        resolve(taken);
+      };
+      c.onclick = () => done(true);
+      const tm = setTimeout(() => { sfx.motor(.9); c.classList.remove("out"); setTimeout(() => { c.hidden = true; }, 1000); done(false); }, timeout);
+    });
+  },
+  async capture() {
+    this.reader.classList.add("red"); sfx.motor(.6);
+    this.cardEl.classList.remove("out");
+    await wait(800); this.cardEl.hidden = true;
+    setTimeout(() => this.reader.classList.remove("red"), 2500);
+  },
+  stackHtml(n) {
+    const list = [];
+    DENOMS.forEach(d => { for (let i = 0; i < (n[d] || 0); i++) list.push(d); });
+    const shown = list.slice(0, 7).reverse();
+    return shown.map((d, i) => `<div class="note n${d}" style="transform:translate(${(shown.length - 1 - i) * 1.5}px,${(shown.length - 1 - i) * -2}px)"><span>${d}</span><small>DEMO</small><span>${d}</span></div>`).join("");
+  },
+  presentCash(notes, timeout = 30000) {
+    return new Promise(async resolve => {
+      const s = this.stackEl;
+      s.innerHTML = this.stackHtml(notes); s.className = "stack"; s.hidden = false;
+      sfx.shutter(); this.shutter.classList.add("open"); await wait(450);
+      void s.offsetWidth; s.classList.add("out"); sfx.motor(.6);
+      this.frame.classList.add("blink"); this.led("#led-cash", "blink");
+      hint("Click the notes in the cash slot to take them.");
+      const done = taken => {
+        clearTimeout(tm); s.onclick = null;
+        this.frame.classList.remove("blink"); this.led("#led-cash", "off");
+        s.classList.remove("out");
+        setTimeout(() => { s.hidden = true; sfx.shutter(); this.shutter.classList.remove("open"); }, taken ? 250 : 900);
+        resolve(taken);
+      };
+      s.onclick = () => done(true);
+      const tm = setTimeout(() => { sfx.motor(.9); done(false); }, timeout);
+    });
+  },
+  openForDeposit() { sfx.shutter(); this.shutter.classList.add("open"); this.frame.classList.add("blink"); this.led("#led-cash", "blink"); },
+  async takeDeposit(notes) {
+    const s = this.stackEl;
+    s.innerHTML = this.stackHtml(notes); s.className = "stack out"; s.hidden = false;
+    void s.offsetWidth; s.classList.remove("out"); sfx.motor(.8);
+    this.frame.classList.remove("blink"); this.led("#led-cash", "off");
+    await wait(900); s.hidden = true;
+    sfx.shutter(); this.shutter.classList.remove("open"); await wait(500);
+  },
+  closeDeposit() { if (this.shutter.classList.contains("open")) { sfx.shutter(); this.shutter.classList.remove("open"); } this.frame.classList.remove("blink"); this.led("#led-cash", "off"); },
+  async print(lines) {
+    const p = this.paperEl;
+    if (!p.hidden && p.dataset.lines) collectReceipt(JSON.parse(p.dataset.lines), false);
+    p.textContent = lines.join("\n"); p.dataset.lines = JSON.stringify(lines);
+    p.className = "paper"; p.hidden = false; void p.offsetWidth;
+    sfx.printer(); p.classList.add("out");
+    this.led("#led-rcpt", "blink");
+    p.onclick = () => { p.onclick = null; p.hidden = true; delete p.dataset.lines; this.led("#led-rcpt", "off"); collectReceipt(lines, true); };
+    await wait(2200);
+  }
+};
+
+/* ================= receipts ================= */
+function receipt(title, rows, a) {
+  const W = 32, d = new Date();
+  const line = (l, r = "") => l + " ".repeat(Math.max(1, W - l.length - r.length)) + r;
+  const centre = s => " ".repeat(Math.max(0, Math.floor((W - s.length) / 2))) + s;
+  const rule = "-".repeat(W);
+  return [
+    centre("BRAINHUB24 BANK"), centre("Demo Branch, Hauptstrasse 1"), centre("ATM BH24-0042"), rule,
+    line("DATE " + d.toLocaleDateString("de-DE"), "TIME " + d.toTimeString().slice(0, 5)),
+    line("CARD", "************" + last4(a)),
+    rule, title, ...rows.map(([l, r]) => line(l, r)), rule,
+    centre("THANK YOU"), centre("DEMO RECEIPT"), centre("NOT A REAL TRANSACTION")
+  ];
+}
+function collectReceipt(lines, open) {
+  st.receipts.push({ t: Date.now(), lines }); if (st.receipts.length > 12) st.receipts.shift();
+  save(); renderWallet(); if (open) showReceipt(lines);
+}
+function showReceipt(lines) { $("#modal-receipt").textContent = lines.join("\n"); $("#modal").hidden = false; $("#modal-close").focus(); }
+$("#modal-close").onclick = () => { $("#modal").hidden = true; };
+$("#modal").onclick = e => { if (e.target.id === "modal") $("#modal").hidden = true; };
+
+/* ================= screen engine ================= */
+const scrBody = $("#scr-body"), scrOpts = $("#scr-opts");
+function clearTimers() { ui.timers.forEach(x => { clearTimeout(x); clearInterval(x); }); ui.timers = []; }
+function screen(def, keepBuf = false) {
+  clearTimers();
+  if (!keepBuf) ui.buf = "";
+  ui.cur = def;
+  render();
+  armIdle();
+  if (def.hint !== undefined) hint(def.hint);
+}
+function fieldHtml() {
+  const f = ui.cur.field; if (!f) return "";
+  let v;
+  if (f.mode === "pin") v = "●".repeat(ui.buf.length) + "–".repeat(Math.max(0, 4 - ui.buf.length));
+  else if (f.mode === "euro") v = fmt((parseInt(ui.buf || "0", 10)) * 100);
+  else if (f.mode === "cents") v = fmt(parseInt(ui.buf || "0", 10));
+  else v = (ui.buf + "_".repeat(Math.max(0, f.max - ui.buf.length)));
+  return `<div class="field ${f.mode === "pin" ? "pin" : ""}" id="field">${esc(v)}</div>${f.hint ? `<div class="field-hint">${esc(f.hint)}</div>` : ""}`;
+}
+function render() {
+  const d = ui.cur;
+  scrBody.className = "scr-body" + (d.center ? " center" : "");
+  scrBody.innerHTML =
+    (d.title ? `<h1 class="scr-title">${esc(d.title)}</h1>` : "") +
+    (d.text ? `<p class="scr-text${d.err ? " err" : ""}">${esc(d.text)}</p>` : "") +
+    (d.html || "") + fieldHtml() +
+    (d.spinner ? `<div class="spinner" aria-hidden="true"></div>` : "");
+  const opts = d.opts || {};
+  scrOpts.innerHTML = Object.keys(opts).filter(k => opts[k]).map(k => {
+    const o = opts[k], side = k[0], row = k[1];
+    return `<button class="opt ${side} r${row}${o.primary ? " primary" : ""}" data-fdk="${k}" ${o.disabled ? "disabled" : ""}>${esc(o.label)}</button>`;
+  }).join("");
+}
+function updateField() { const f = $("#field"); if (f) { const tmp = document.createElement("div"); tmp.innerHTML = fieldHtml(); f.replaceWith(tmp.firstElementChild); } }
+function armIdle() {
+  const d = ui.cur;
+  if (ui.state !== "session" || d.locked || d.noTimeout) return;
+  ui.timers.push(setTimeout(moreTime, 30000));
+}
+function moreTime() {
+  const prev = ui.cur, prevBuf = ui.buf;
+  let n = 15;
+  sfx.tone(900, .15, .04); sfx.tone(900, .15, .04, "square", .25);
+  const def = {
+    title: t("moreTime"), text: t("moreTimeSub", n), noTimeout: true,
+    opts: { R3: { label: t("yes"), primary: true, act: () => { ui.buf = prevBuf; screen(prev, true); } }, R4: { label: t("no"), act: () => cancelSession() } },
+    onCancel: () => cancelSession()
+  };
+  screen(def);
+  ui.timers.push(setInterval(() => {
+    n -= 1;
+    if (n <= 0) { clearTimers(); cancelSession(); return; }
+    const p = scrBody.querySelector(".scr-text"); if (p) p.textContent = t("moreTimeSub", n);
+  }, 1000));
+}
+function press(el) { if (!el) return; el.classList.add("pressed"); setTimeout(() => el.classList.remove("pressed"), 120); }
+function onFdk(k) {
+  const d = ui.cur; if (!d || d.locked) return;
+  const o = (d.opts || {})[k];
+  if (!o || o.disabled) return;
+  sfx.beep(); clearTimers(); o.act();
+}
+function onKey(k) {
+  const d = ui.cur; if (!d || d.locked) return;
+  if (k === "cancel") {
+    if (ui.state !== "session") return;
+    sfx.beep(); clearTimers();
+    return d.onCancel ? d.onCancel() : cancelSession();
+  }
+  const f = d.field;
+  if (/^\d$/.test(k)) {
+    if (!f || ui.buf.length >= f.max) return sfx.err();
+    sfx.beep(); ui.buf += k; updateField();
+  } else if (k === "clear") {
+    if (!f) return sfx.err();
+    sfx.beep(); ui.buf = ""; updateField();
+  } else if (k === "enter") {
+    if (f && d.onEnter) { sfx.beep(); clearTimers(); d.onEnter(ui.buf); }
+    else if (d.onEnterKey) { sfx.beep(); clearTimers(); d.onEnterKey(); }
+    else sfx.err();
+    return;
+  }
+  clearTimers(); armIdle();
+}
+document.addEventListener("click", e => {
+  const f = e.target.closest("[data-fdk]"); if (f) { press(document.querySelector(`.fdk[data-fdk="${f.dataset.fdk}"]`)); onFdk(f.dataset.fdk); return; }
+  const k = e.target.closest("[data-key]"); if (k) onKey(k.dataset.key);
+});
+document.addEventListener("mousedown", e => { if (e.target.closest("[data-key], [data-fdk]")) e.preventDefault(); }); // keep focus off machine keys
+document.addEventListener("keydown", e => {
+  if (!$("#modal").hidden) { if (e.key === "Escape" || e.key === "Enter") { $("#modal").hidden = true; e.preventDefault(); } return; }
+  const btn = e.target.closest && e.target.closest("button");
+  if (btn && !btn.dataset.key && (e.key === "Enter" || e.key === " ")) return; // native activation for other buttons
+  let k = null;
+  if (/^[0-9]$/.test(e.key)) k = e.key;
+  else if (e.key === "Enter") k = "enter";
+  else if (e.key === "Backspace" || e.key === "Delete") k = "clear";
+  else if (e.key === "Escape") k = "cancel";
+  if (!k) return;
+  e.preventDefault();
+  press(document.querySelector(`.key[data-key="${k}"]`));
+  onKey(k);
+});
+
+/* ================= flows ================= */
+function hint(html) { $("#hint").innerHTML = html; }
+
+function idle() {
+  ui.state = "idle"; ui.id = null; ui.ending = false;
+  const cashOk = DENOMS.some(d => st.cassettes[d] > 0);
+  let flip = false;
+  const paint = () => {
+    const L = flip ? "de" : "en";
+    scrBody.className = "scr-body center";
+    scrBody.innerHTML = `<h1 class="scr-title">${T[L].welcome}</h1><p class="scr-text">${T[L].insert}</p>
+      <div class="attract" aria-hidden="true"><div class="slotline"></div><div class="acard"></div></div>
+      <p class="scr-text" style="font-size:2.5cqw">${cashOk ? T[L].insertSub : T[L].noCash}</p>`;
+  };
+  ui.cur = { locked: false };
+  clearTimers(); scrOpts.innerHTML = ""; paint();
+  ui.timers.push(setInterval(() => { flip = !flip; paint(); }, 4000));
+  hw.reader.classList.add("blink"); hw.led("#led-card", "blink");
+  hint("Click a card in <b>your wallet</b> to insert it. The PIN is on the sticky note.");
+  renderWallet();
+}
+
+async function insertCard(id) {
+  if (ui.state !== "idle") { hint("Finish the current transaction first."); return; }
+  const a = st.accounts[id]; if (a.captured) return;
+  ui.state = "busy"; ui.id = id; ui.lang = "en";
+  clearTimers(); renderWallet();
+  screen({ locked: true, center: true, title: "", text: "" , hint: "" });
+  await hw.cardIn(a);
+  jr(`CARD INSERTED ****${last4(a)}`);
+  screen({ locked: true, center: true, title: t("reading"), text: t("dontRemove"), spinner: true });
+  await wait(1500);
+  const [mm, yy] = a.exp.split("/").map(Number);
+  const expEnd = new Date(2000 + yy, mm, 1);
+  if (expEnd <= new Date()) {
+    jr(`CARD EXPIRED ${a.exp} - EJECT`);
+    sfx.err();
+    screen({ locked: true, center: true, title: t("expired"), text: t("expiredSub") });
+    await wait(2600);
+    await returnCard(t("expired"));
+    return finish();
+  }
+  ui.state = "session";
+  langScreen();
+}
+
+function langScreen() {
+  screen({
+    title: "Please select your language", text: "Bitte wählen Sie Ihre Sprache",
+    opts: {
+      R3: { label: "English", act: () => { ui.lang = "en"; jr("LANGUAGE EN"); pinScreen(); } },
+      R4: { label: "Deutsch", act: () => { ui.lang = "de"; jr("LANGUAGE DE"); pinScreen(); } }
+    },
+    hint: "Choose a language with the keys beside the screen, or click the option."
+  });
+}
+
+function pinScreen(msg) {
+  screen({
+    title: t("pinTitle"), text: msg || t("pinSub"), err: !!msg, center: true,
+    field: { mode: "pin", max: 6 },
+    hint: `Type the PIN on the keypad (or your keyboard) and press <b>Enter</b>. Wrong 3 times and the card is kept.`,
+    onEnter: async v => {
+      if (v.length < 4) return pinScreen(t("pinShort"));
+      const a = acct();
+      screen({ locked: true, center: true, title: t("checkingPin"), text: t("wait"), spinner: true });
+      await wait(1300);
+      if (v === a.pin) {
+        a.tries = 0; save(); jr("PIN OK"); sfx.chime(); menu();
+      } else {
+        a.tries += 1; save(); jr(`PIN INVALID (${a.tries}/3)`); sfx.err();
+        if (a.tries >= 3) {
+          a.captured = true; a.tries = 0; save(); jr(`CARD CAPTURED ****${last4(a)} - PIN TRIES EXCEEDED`);
+          ui.state = "busy";
+          await hw.capture();
+          screen({ locked: true, center: true, title: t("retained"), text: t("retainedSub") });
+          hint("The card is gone. Use <b>Reset demo</b> to get it back.");
+          await wait(5000);
+          return finish(true);
+        }
+        pinScreen(t("wrongPin", 3 - a.tries));
+      }
+    }
+  });
+}
+
+function menu() {
+  const cashOk = DENOMS.some(d => st.cassettes[d] > 0);
+  screen({
+    title: t("menu"),
+    text: `${acct().holder} · ****${last4(acct())}`,
+    opts: {
+      L1: { label: fmt(5000), act: () => askReceiptThenWithdraw(50), disabled: !cashOk },
+      L2: { label: fmt(10000), act: () => askReceiptThenWithdraw(100), disabled: !cashOk },
+      L3: { label: fmt(20000), act: () => askReceiptThenWithdraw(200), disabled: !cashOk },
+      L4: { label: t("other"), act: amountScreen, disabled: !cashOk },
+      R1: { label: t("balance"), act: balanceScreen },
+      R2: { label: t("deposit"), act: depositScreen },
+      R3: { label: t("transfer"), act: transferMenu },
+      R4: { label: t("more"), act: moreMenu }
+    },
+    hint: "Pick a service with the side keys. <b>Cancel</b> on the keypad ends the session and returns your card."
+  });
+}
+function moreMenu() {
+  screen({
+    title: t("more"),
+    opts: {
+      L1: { label: t("statement"), act: statementScreen },
+      L2: { label: t("changePin"), act: changePin },
+      R3: { label: t("returnCard"), act: () => cancelSession(true) },
+      R4: { label: t("back"), act: menu }
+    }
+  });
+}
+
+function amountScreen(msg) {
+  const avail = DENOMS.filter(d => st.cassettes[d] > 0).sort((x, y) => x - y).map(d => fmt(d * 100).replace(/[.,]00/, "")).join(" · ");
+  screen({
+    title: t("amountTitle"), text: typeof msg === "string" ? msg : `${t("amountSub")} ${avail}`, err: typeof msg === "string", center: true,
+    field: { mode: "euro", max: 4 },
+    opts: { L4: { label: t("back"), act: menu }, R4: { label: t("confirm"), primary: true, act: () => ui.cur.onEnter(ui.buf) } },
+    onEnter: v => askReceiptThenWithdraw(parseInt(v || "0", 10)),
+    hint: "Type the amount, then press <b>Enter</b>."
+  });
+}
+
+function checkWithdraw(euros) {
+  const a = acct(); rollDay(a);
+  const cents = euros * 100;
+  if (!euros) return { err: t("zero") };
+  if (euros % 10) return { err: t("notMultiple") };
+  if (cents > a.limit - a.withdrawn) return { err: t("overLimit", fmt(Math.max(0, a.limit - a.withdrawn))) };
+  if (cents > a.checking) return { err: t("insufficient", fmt(a.checking)) };
+  const notes = noteMix(euros);
+  if (!notes) return { err: t("noNotes") };
+  return { notes };
+}
+function withdrawError(msg) {
+  sfx.err();
+  screen({ title: t("amountTitle"), text: msg, err: true, opts: { R3: { label: t("tryAgain"), act: amountScreen }, R4: { label: t("mainMenu"), act: menu } } });
+}
+function askReceiptThenWithdraw(euros) {
+  const chk = checkWithdraw(euros);
+  if (chk.err) return withdrawError(chk.err);
+  screen({
+    title: t("receiptQ"), text: fmt(euros * 100),
+    opts: { R3: { label: t("yes"), act: () => withdraw(euros, true) }, R4: { label: t("no"), act: () => withdraw(euros, false) } }
+  });
+}
+async function withdraw(euros, wantReceipt) {
+  const a = acct(), cents = euros * 100;
+  const chk = checkWithdraw(euros); if (chk.err) return withdrawError(chk.err);
+  ui.state = "busy";
+  screen({ locked: true, center: true, title: t("processing"), text: t("wait"), spinner: true, hint: "" });
+  await wait(1700);
+  const trn = nextTrn(), auth = authCode();
+  a.checking -= cents; a.withdrawn += cents;
+  a.tx.push({ t: Date.now(), desc: ui.lang === "de" ? "Geldautomat BH24-0042" : "ATM withdrawal BH24-0042", amt: -cents });
+  save();
+  jr(`TRN ${trn} WDL EUR ${fmtPlain(cents)} AUTH ${auth}`);
+  // card before cash
+  screen({ locked: true, center: true, title: t("takeCard"), text: t("takeCardSub") });
+  const taken = await hw.cardOut();
+  if (!taken) {
+    a.checking += cents; a.withdrawn -= cents; a.tx.pop(); a.captured = true; save();
+    jr(`TRN ${trn} REVERSED - CARD NOT TAKEN, CAPTURED`);
+    screen({ locked: true, center: true, title: t("notTaken"), text: t("notTakenSub") });
+    await wait(4500); return finish(true);
+  }
+  jr("CARD TAKEN");
+  screen({ locked: true, center: true, title: t("counting"), text: t("wait"), spinner: true });
+  const notes = chk.notes;
+  sfx.count(notesCount(notes));
+  await wait(900 + notesCount(notes) * 75);
+  DENOMS.forEach(d => { st.cassettes[d] -= notes[d] || 0; }); save(); renderOps();
+  jr(`TRN ${trn} NOTES ${notesStr(notes)} PRESENTED`);
+  screen({ locked: true, center: true, title: t("takeCash"), text: t("takeCashSub"), html: `<div class="big-amt">${fmt(cents)}</div>` });
+  const cashTaken = await hw.presentCash(notes);
+  if (cashTaken) {
+    DENOMS.forEach(d => { st.wallet[d] = (st.wallet[d] || 0) + (notes[d] || 0); });
+    jr(`TRN ${trn} CASH TAKEN`);
+  } else {
+    a.checking += cents; a.withdrawn -= cents; st.retractBin += notesCount(notes);
+    a.tx.push({ t: Date.now(), desc: ui.lang === "de" ? "Rückbuchung eingezogenes Geld" : "Reversal: cash retracted", amt: cents });
+    jr(`TRN ${trn} CASH RETRACTED ${notesCount(notes)} NOTES - REVERSED`);
+    screen({ locked: true, center: true, title: t("retracted"), text: t("retractedSub") });
+    await wait(3500);
+  }
+  save(); renderWallet(); renderOps();
+  if (wantReceipt && cashTaken) {
+    screen({ locked: true, center: true, title: t("thanks"), text: t("takeReceipt") });
+    await hw.print(receipt("CASH WITHDRAWAL", [["TRN", String(trn)], ["AUTH", auth], ["AMOUNT", "EUR " + fmtPlain(cents)], ["NOTES", notesStr(notes)], ["BALANCE", "EUR " + fmtPlain(a.checking)]], a));
+    jr(`TRN ${trn} RECEIPT PRINTED`);
+  }
+  finish();
+}
+
+function balanceScreen() {
+  const a = acct(); rollDay(a);
+  const avail = Math.max(0, Math.min(a.checking, a.limit - a.withdrawn));
+  jr("BALANCE INQUIRY");
+  screen({
+    title: t("balTitle"),
+    html: `<dl class="kv"><dt>${esc(t("checkingAcc"))}</dt><dd>${fmt(a.checking)}</dd><dt>${esc(t("savingsAcc"))}</dt><dd>${fmt(a.savings)}</dd><dt>${esc(t("availToday"))}</dt><dd>${fmt(avail)}</dd></dl>`,
+    opts: {
+      R3: { label: t("print"), act: async () => {
+        ui.state = "busy"; screen({ locked: true, center: true, title: t("takeReceipt"), spinner: true });
+        await hw.print(receipt("BALANCE INQUIRY", [["CURRENT", "EUR " + fmtPlain(a.checking)], ["SAVINGS", "EUR " + fmtPlain(a.savings)], ["CASH TODAY", "EUR " + fmtPlain(avail)]], a));
+        ui.state = "session"; another();
+      } },
+      R4: { label: t("cont"), primary: true, act: another }
+    }
+  });
+}
+
+function another() {
+  screen({ title: t("anotherQ"), opts: { R3: { label: t("yes"), act: menu }, R4: { label: t("no"), act: () => cancelSession(true) } } });
+}
+
+/* ---- deposit ---- */
+function depositScreen() {
+  hw.openForDeposit();
+  ui.awaitDeposit = true; renderWallet();
+  screen({
+    title: t("depTitle"), text: t("depSub"),
+    opts: { L4: { label: t("cancel"), act: () => { ui.awaitDeposit = false; hw.closeDeposit(); renderWallet(); menu(); } } },
+    onCancel: () => { ui.awaitDeposit = false; hw.closeDeposit(); renderWallet(); cancelSession(); },
+    hint: "Click <b>Insert notes into ATM</b> in your wallet."
+  });
+}
+async function depositNotes() {
+  if (!ui.awaitDeposit) return;
+  const notes = { ...st.wallet };
+  if (!notesCount(notes)) { hint(t("emptyWallet")); sfx.err(); return; }
+  ui.awaitDeposit = false; ui.state = "busy";
+  DENOMS.forEach(d => { st.wallet[d] = 0; }); save(); renderWallet();
+  screen({ locked: true, center: true, title: t("counting"), text: t("wait"), spinner: true, hint: "" });
+  await hw.takeDeposit(notes);
+  sfx.count(notesCount(notes));
+  await wait(1000 + notesCount(notes) * 75);
+  ui.state = "session";
+  const total = notesTotal(notes) * 100;
+  const rows = DENOMS.filter(d => notes[d]).map(d => `<span>${fmt(d * 100)}</span><span>× ${notes[d]}</span><span>${fmt(d * notes[d] * 100)}</span>`).join("");
+  screen({
+    title: t("depCounted"),
+    html: `<div class="counted">${rows}</div><div class="big-amt">${fmt(total)}</div>`,
+    opts: {
+      R3: { label: t("depConfirm"), primary: true, act: () => confirmDeposit(notes) },
+      R4: { label: t("depReturn"), act: () => returnDeposit(notes) }
+    },
+    onCancel: () => returnDeposit(notes, true),
+    noTimeout: true
+  });
+}
+async function confirmDeposit(notes) {
+  const a = acct(), cents = notesTotal(notes) * 100;
+  ui.state = "busy";
+  screen({ locked: true, center: true, title: t("processing"), text: t("wait"), spinner: true });
+  await wait(1400);
+  const trn = nextTrn();
+  a.checking += cents;
+  a.tx.push({ t: Date.now(), desc: ui.lang === "de" ? "Bareinzahlung BH24-0042" : "Cash deposit BH24-0042", amt: cents });
+  DENOMS.forEach(d => { st.cassettes[d] = Math.min(st.capacity[d], st.cassettes[d] + (notes[d] || 0)); }); // recycled
+  save(); renderOps();
+  jr(`TRN ${trn} DEP EUR ${fmtPlain(cents)} NOTES ${notesStr(notes)} RECYCLED`);
+  ui.state = "session";
+  screen({
+    title: t("depDone"), html: `<dl class="kv"><dt>${esc(t("trAmount"))}</dt><dd>${fmt(cents)}</dd><dt>${esc(t("newBal"))}</dt><dd>${fmt(a.checking)}</dd></dl>`,
+    opts: {
+      R3: { label: t("print"), act: async () => {
+        ui.state = "busy"; screen({ locked: true, center: true, title: t("takeReceipt"), spinner: true });
+        await hw.print(receipt("CASH DEPOSIT", [["TRN", String(trn)], ["NOTES", notesStr(notes)], ["AMOUNT", "EUR " + fmtPlain(cents)], ["BALANCE", "EUR " + fmtPlain(a.checking)]], a));
+        ui.state = "session"; another();
+      } },
+      R4: { label: t("cont"), primary: true, act: another }
+    }
+  });
+}
+async function returnDeposit(notes, thenEnd) {
+  ui.state = "busy";
+  screen({ locked: true, center: true, title: t("depReturned") });
+  const taken = await hw.presentCash(notes);
+  if (taken) DENOMS.forEach(d => { st.wallet[d] += notes[d] || 0; });
+  else st.retractBin += notesCount(notes);
+  jr(taken ? "DEPOSIT RETURNED TO CUSTOMER" : `DEPOSIT NOTES RETRACTED ${notesCount(notes)}`);
+  save(); renderWallet(); renderOps();
+  ui.state = "session";
+  if (thenEnd) cancelSession(); else menu();
+}
+
+/* ---- transfer ---- */
+function transferMenu() {
+  const a = acct();
+  screen({
+    title: t("trTitle"),
+    opts: {
+      L1: { label: t("trToSav"), act: () => transferAmount({ kind: "toSav" }), disabled: a.checking <= 0 },
+      L2: { label: t("trFromSav"), act: () => transferAmount({ kind: "fromSav" }), disabled: a.savings <= 0 },
+      L3: { label: t("trOther"), act: () => transferAccount() },
+      R4: { label: t("back"), act: menu }
+    }
+  });
+}
+function transferAccount(msg) {
+  screen({
+    title: t("trAcct"), text: msg || t("trAcctSub"), err: !!msg, center: true,
+    field: { mode: "digits", max: 7 },
+    opts: { L4: { label: t("back"), act: transferMenu }, R4: { label: t("confirm"), primary: true, act: () => ui.cur.onEnter(ui.buf) } },
+    onEnter: v => {
+      const id = Object.keys(st.accounts).find(k => st.accounts[k].acctNo === v);
+      if (!id) { sfx.err(); return transferAccount(t("trBadAcct")); }
+      if (id === ui.id) { sfx.err(); return transferAccount(t("trOwn")); }
+      transferAmount({ kind: "other", to: id });
+    },
+    hint: "Try account <b>" + Object.values(st.accounts).filter(x => x !== acct())[0].acctNo + "</b> (printed under each card in the wallet)."
+  });
+}
+function transferAmount(tr, msg) {
+  screen({
+    title: t("trAmt"), text: msg || t("trAmtSub"), err: !!msg, center: true,
+    field: { mode: "cents", max: 7 },
+    opts: { L4: { label: t("back"), act: transferMenu }, R4: { label: t("confirm"), primary: true, act: () => ui.cur.onEnter(ui.buf) } },
+    onEnter: v => {
+      const cents = parseInt(v || "0", 10), a = acct();
+      if (!cents) { sfx.err(); return transferAmount(tr, t("zero")); }
+      const src = tr.kind === "fromSav" ? a.savings : a.checking;
+      if (cents > src) { sfx.err(); return transferAmount(tr, t("insufficient", fmt(src))); }
+      transferConfirm(tr, cents);
+    }
+  });
+}
+function transferConfirm(tr, cents) {
+  const label = tr.kind === "toSav" ? [t("checkingAcc"), t("savingsAcc")] : tr.kind === "fromSav" ? [t("savingsAcc"), t("checkingAcc")]
+    : [t("checkingAcc"), `${st.accounts[tr.to].acctNo} · ${st.accounts[tr.to].holder.replace(/^(\w)\w*\s/, "$1. ")}`];
+  screen({
+    title: t("trConfirm"),
+    html: `<dl class="kv"><dt>${esc(t("trFrom"))}</dt><dd>${esc(label[0])}</dd><dt>${esc(t("trTo"))}</dt><dd>${esc(label[1])}</dd><dt>${esc(t("trAmount"))}</dt><dd>${fmt(cents)}</dd></dl>`,
+    opts: { R3: { label: t("confirm"), primary: true, act: () => doTransfer(tr, cents, label) }, R4: { label: t("cancel"), act: menu } }
+  });
+}
+async function doTransfer(tr, cents, label) {
+  const a = acct();
+  ui.state = "busy";
+  screen({ locked: true, center: true, title: t("processing"), text: t("wait"), spinner: true });
+  await wait(1500);
+  const trn = nextTrn();
+  const de = ui.lang === "de";
+  if (tr.kind === "toSav") { a.checking -= cents; a.savings += cents; a.tx.push({ t: Date.now(), desc: de ? "Übertrag auf Sparkonto" : "Transfer to savings", amt: -cents }); }
+  else if (tr.kind === "fromSav") { a.savings -= cents; a.checking += cents; a.tx.push({ t: Date.now(), desc: de ? "Übertrag vom Sparkonto" : "Transfer from savings", amt: cents }); }
+  else {
+    const b = st.accounts[tr.to];
+    a.checking -= cents; b.checking += cents;
+    a.tx.push({ t: Date.now(), desc: (de ? "Überweisung an " : "Transfer to ") + b.holder, amt: -cents });
+    b.tx.push({ t: Date.now(), desc: (de ? "Überweisung von " : "Transfer from ") + a.holder, amt: cents });
+  }
+  save();
+  jr(`TRN ${trn} XFER EUR ${fmtPlain(cents)} ${tr.kind === "other" ? "TO " + st.accounts[tr.to].acctNo : tr.kind.toUpperCase()}`);
+  ui.state = "session";
+  screen({
+    title: t("trDone"), html: `<dl class="kv"><dt>${esc(t("trTo"))}</dt><dd>${esc(label[1])}</dd><dt>${esc(t("trAmount"))}</dt><dd>${fmt(cents)}</dd><dt>${esc(t("checkingAcc"))}</dt><dd>${fmt(a.checking)}</dd></dl>`,
+    opts: {
+      R3: { label: t("print"), act: async () => {
+        ui.state = "busy"; screen({ locked: true, center: true, title: t("takeReceipt"), spinner: true });
+        await hw.print(receipt("TRANSFER", [["TRN", String(trn)], ["TO", tr.kind === "other" ? st.accounts[tr.to].acctNo : tr.kind === "toSav" ? "SAVINGS" : "CURRENT"], ["AMOUNT", "EUR " + fmtPlain(cents)], ["BALANCE", "EUR " + fmtPlain(a.checking)]], a));
+        ui.state = "session"; another();
+      } },
+      R4: { label: t("cont"), primary: true, act: another }
+    }
+  });
+}
+
+/* ---- statement ---- */
+function statementScreen() {
+  const a = acct();
+  const rows = a.tx.slice(-7).reverse();
+  const dfmt = ts => new Date(ts).toLocaleDateString(ui.lang === "de" ? "de-DE" : "en-GB", { day: "2-digit", month: "2-digit" });
+  jr("MINI STATEMENT");
+  screen({
+    title: t("stmtTitle"),
+    html: rows.length ? `<table class="stmt">${rows.map(r => `<tr><td>${dfmt(r.t)}</td><td>${esc(r.desc)}</td><td>${fmt(r.amt)}</td></tr>`).join("")}</table>` : `<p class="scr-text">${esc(t("noTx"))}</p>`,
+    opts: {
+      L4: { label: t("back"), act: menu },
+      R4: { label: t("print"), act: async () => {
+        ui.state = "busy"; screen({ locked: true, center: true, title: t("takeReceipt"), spinner: true });
+        await hw.print(receipt("MINI STATEMENT", rows.map(r => [dfmt(r.t) + " " + r.desc.slice(0, 13).toUpperCase(), fmtPlain(r.amt)]).concat([["BALANCE", "EUR " + fmtPlain(a.checking)]]), a));
+        ui.state = "session"; another();
+      } }
+    }
+  });
+}
+
+/* ---- change PIN ---- */
+function changePin(msg) {
+  screen({
+    title: t("newPin"), text: msg || t("newPinSub"), err: !!msg, center: true,
+    field: { mode: "pin", max: 4 },
+    opts: { L4: { label: t("back"), act: moreMenu } },
+    onEnter: v => {
+      if (v.length !== 4) { sfx.err(); return changePin(t("newPinSub")); }
+      if (v === acct().pin) { sfx.err(); return changePin(t("pinSame")); }
+      screen({
+        title: t("repeatPin"), center: true, field: { mode: "pin", max: 4 },
+        opts: { L4: { label: t("back"), act: moreMenu } },
+        onEnter: async w => {
+          if (w !== v) { sfx.err(); return changePin(t("pinMismatch")); }
+          ui.state = "busy";
+          screen({ locked: true, center: true, title: t("processing"), spinner: true });
+          await wait(1400);
+          acct().pin = v; save(); jr("PIN CHANGED"); renderWallet();
+          ui.state = "session"; sfx.chime();
+          screen({ title: t("pinChanged"), opts: { R4: { label: t("cont"), primary: true, act: another } } });
+        }
+      });
+    }
+  });
+}
+
+/* ---- ending ---- */
+async function returnCard(title) {
+  ui.state = "busy";
+  screen({ locked: true, center: true, title: title || t("takeCard"), text: t("takeCardEnd") });
+  const taken = await hw.cardOut();
+  if (taken) { jr("CARD TAKEN"); return true; }
+  const a = acct(); a.captured = true; save();
+  jr(`CARD CAPTURED ****${last4(a)} - NOT TAKEN`);
+  screen({ locked: true, center: true, title: t("notTaken"), text: t("notTakenSub") });
+  await wait(4000);
+  return false;
+}
+async function cancelSession(byChoice) {
+  if (ui.ending) return; ui.ending = true;
+  ui.awaitDeposit = false; hw.closeDeposit(); renderWallet();
+  ui.state = "busy";
+  if (!byChoice) {
+    jr("SESSION CANCELLED");
+    screen({ locked: true, center: true, title: t("cancelled") });
+    await wait(1100);
+  }
+  await returnCard();
+  finish();
+}
+async function finish(skipThanks) {
+  ui.state = "busy";
+  if (!skipThanks) { screen({ locked: true, center: true, title: t("thanks") }); await wait(2200); }
+  jr("SESSION END");
+  renderWallet();
+  idle();
+}
+
+/* ================= side panel ================= */
+function renderWallet() {
+  const box = $("#cards");
+  box.innerHTML = Object.entries(st.accounts).map(([id, a]) => {
+    const inMachine = ui.id === id && ui.state !== "idle";
+    const gone = a.captured || inMachine;
+    const status = a.captured ? "Retained by ATM" : inMachine ? "In the ATM" : "";
+    return `<div class="wcard-row">
+      <button class="bankcard ${gone ? "gone" : ""}" data-card="${id}" ${gone || ui.state !== "idle" ? "disabled" : ""} aria-label="Insert card ending ${last4(a)}">
+        <span class="cf ${a.cls}"><span class="bn">Brainhub24</span><span class="type">DEBIT</span><span class="chip"></span>
+        <span class="num">${a.pan}</span><span class="meta"><span>${a.holder}</span><span>${a.exp}</span></span></span>
+      </button>
+      <div class="sticky">PIN ${a.pin}<small>Acct ${a.acctNo}</small>${status ? `<small>${status}</small>` : id === "C" ? "<small>expired card</small>" : id === "B" ? "<small>low balance</small>" : ""}</div>
+    </div>`;
+  }).join("");
+  box.querySelectorAll("[data-card]").forEach(b => b.onclick = () => { sfx.ac(); insertCard(b.dataset.card); });
+  const w = st.wallet;
+  const chips = DENOMS.filter(d => w[d]).map(d => `<span class="chipnote n${d}">€${d} × ${w[d]}</span>`).join("");
+  $("#cash").innerHTML = (chips || `<span class="muted">No notes</span>`) + `<span class="total">${fmt(notesTotal(w) * 100)}</span>`;
+  $("#btn-insert-notes").disabled = !ui.awaitDeposit;
+  $("#receipts").innerHTML = st.receipts.length ? st.receipts.slice().reverse().map((r, i) => `<button class="btn" data-rc="${st.receipts.length - 1 - i}">${new Date(r.t).toTimeString().slice(0, 5)} · ${esc(r.lines[7] || "Receipt")}</button>`).join("") : `<span class="muted">Receipts you take appear here.</span>`;
+  $("#receipts").querySelectorAll("[data-rc]").forEach(b => b.onclick = () => showReceipt(st.receipts[+b.dataset.rc].lines));
+}
+function renderOps() {
+  $("#cassettes").innerHTML = DENOMS.slice().reverse().map(d => {
+    const n = st.cassettes[d], pct = Math.round(n / st.capacity[d] * 100);
+    return `<span>€${d} notes</span><span class="bar"><i class="${n === 0 ? "empty" : pct < 15 ? "low" : ""}" style="width:${pct}%"></i></span><span style="text-align:right">${n}/${st.capacity[d]}</span>`;
+  }).join("") + `<span>Retract bin</span><span></span><span style="text-align:right">${st.retractBin}</span>`;
+}
+function renderJournal() {
+  const j = $("#journal");
+  j.textContent = st.journal.slice(-120).join("\n") || "Electronic journal is empty.";
+  j.scrollTop = j.scrollHeight;
+}
+$("#btn-insert-notes").onclick = depositNotes;
+$("#btn-sound").onclick = e => { sfx.on = !sfx.on; e.currentTarget.textContent = sfx.on ? "Sound on" : "Sound off"; e.currentTarget.setAttribute("aria-pressed", sfx.on); };
+$("#btn-reset").onclick = () => {
+  if (ui.state !== "idle") { hint("Finish or cancel the current session before resetting."); return; }
+  st = defaults(); save();
+  ["#card-in", "#paper", "#stack"].forEach(s => { $(s).hidden = true; });
+  hw.led("#led-rcpt", "off");
+  jr("DEMO RESET - CASSETTES REPLENISHED");
+  renderOps(); idle();
+};
+
+/* ================= boot ================= */
+function tick() { const d = new Date(); $("#clock").textContent = d.toLocaleDateString("de-DE") + "  " + d.toTimeString().slice(0, 5); }
+tick(); setInterval(tick, 10000);
+Object.values(st.accounts).forEach(rollDay);
+if (!st.journal.length) jr("ATM BH24-0042 IN SERVICE");
+renderOps(); renderJournal(); idle();
+})();
+</script>
+</body>
+</html>
