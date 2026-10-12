@@ -29,7 +29,15 @@ The CLI behaves like the GUI demo in [`demo/index.html`](demo/index.html), drawn
 - **Scriptable:** with piped input, each line answers one screen. `--fast` turns off animations, for example:
   `printf '1\n1\n1234\n5\n2\n2\n\nq\n' | ./atm --fast --no-color --state /tmp/atm.tsv`
 
-Interactive key handling and timeouts need a POSIX terminal (Linux, macOS, WSL). On Windows the program builds and falls back to line input without timeouts or colours.
+**Windows** (MinGW g++ 9 or newer, Windows 10/11, best in Windows Terminal):
+
+```powershell
+g++ -std=c++17 -O2 -Wall -Wextra ATM.cpp -o atm.exe
+.\atm.exe
+.\atm.exe --plain    # if keys or the screen misbehave: type a choice + Enter per screen
+```
+
+On Windows the state is saved to `%APPDATA%\brainhub24-atm\state.tsv`.
 
 **GUI version:** open [`demo/index.html`](demo/index.html) in a browser (card reader, PIN pad, cash dispenser, receipts, journal). The review of v2 and the plan for v3 are in [`docs/V3_PLAN.md`](docs/V3_PLAN.md).
 

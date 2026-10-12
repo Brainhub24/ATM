@@ -50,6 +50,13 @@
 #include <vector>
 
 #ifdef _WIN32
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <conio.h>
 #include <io.h>
 #include <windows.h>
 #else
@@ -78,6 +85,7 @@ struct Options {
     bool sound = false;
     bool autoplay = false;
     bool reset = false;
+    bool plain = false;  // type a line + Enter per screen, no full-screen redraw
     int timeout = 30;  // inactivity timeout in seconds, 0 = off
 };
 
@@ -134,17 +142,62 @@ static void bell() {
 
 namespace plat {
 #ifdef _WIN32
+// Windows console: keys come from _getch() (no echo, no Enter needed), colours
+// and cursor control use the console's VT mode (Windows 10 and later).
+static bool keys = false;   // stdin is a console: read single keys
+static bool vtOk = false;   // console accepted VT escape sequences
+static DWORD origOutMode = 0;
+static bool outModeSaved = false;
 bool stdinTty() { return _isatty(_fileno(stdin)); }
-bool stdoutTty() { return _isatty(_fileno(stdout)); }
-void rawOn() {}
-void rawOff() {}
-int waitReadable(int) { return 1; }
+bool stdoutTty() { return _isatty(_fileno(stdout)) && vtOk; }
+void rawOn() { keys = stdinTty(); }
+void rawOff() {
+    keys = false;
+    if (outModeSaved) SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), origOutMode);
+}
+int waitReadable(int ms) {
+    if (!keys) return 1;  // line input: fgets blocks, no timeouts
+    auto end = std::chrono::steady_clock::now() + std::chrono::milliseconds(ms);
+    for (;;) {
+        if (_kbhit()) return 1;
+        if (ms >= 0 && std::chrono::steady_clock::now() >= end) return 0;
+        Sleep(15);
+    }
+}
 long readSome(char* b, size_t n) {
+    if (keys) {
+        int c = _getch();
+        if (c == 0 || c == 0xE0) {  // arrow / function key: swallow the second byte
+            _getch();
+            return readSome(b, n);
+        }
+        if (c == 3) std::raise(SIGINT);  // Ctrl+C
+        b[0] = static_cast<char>(c);
+        return 1;
+    }
     if (!std::fgets(b, static_cast<int>(n), stdin)) return 0;
     return static_cast<long>(std::strlen(b));
 }
-void flushInput() {}
-void setupConsole() { SetConsoleOutputCP(CP_UTF8); }
+void flushInput() {
+    if (keys)
+        while (_kbhit()) _getch();
+}
+void setupConsole() {
+    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+    HANDLE h = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD mode = 0;
+    if (h != INVALID_HANDLE_VALUE && GetConsoleMode(h, &mode)) {
+        origOutMode = mode;
+        outModeSaved = true;
+#ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+#define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+#endif
+        vtOk = SetConsoleMode(h, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING | ENABLE_PROCESSED_OUTPUT) != 0;
+    }
+    static char outBuf[1 << 16];  // whole frames per write, so UTF-8 is never split
+    std::setvbuf(stdout, outBuf, _IOFBF, sizeof outBuf);
+}
 #else
 static termios orig;
 static bool raw = false;
@@ -190,17 +243,20 @@ static void termLeave() {
     plat::rawOff();
 }
 
-#ifndef _WIN32
 static void onSignal(int) {
     static const char seq[] = "\x1b[0m\x1b[?25h\x1b[?1049l\nATM session aborted.\n";
     if (g_tty) {
+#ifdef _WIN32
+        std::fwrite(seq, 1, sizeof seq - 1, stdout);
+        std::fflush(stdout);
+#else
         ssize_t r = write(1, seq, sizeof seq - 1);
         (void)r;
+#endif
         plat::rawOff();
     }
-    _exit(130);
+    std::_Exit(130);
 }
-#endif
 
 enum class K { Char, Enter, Back, Esc, Timeout, Eof, None };
 struct Key {
@@ -650,10 +706,14 @@ static std::string defaultStatePath() {
     if (const char* p = std::getenv("ATM_STATE_FILE"); p && *p) return p;
     namespace fs = std::filesystem;
     fs::path base;
+#ifdef _WIN32
+    if (const char* u = std::getenv("APPDATA"); u && *u) base = u;  // %APPDATA%\brainhub24-atm
+    else base = ".";
+#else
     if (const char* x = std::getenv("XDG_DATA_HOME"); x && *x) base = x;
     else if (const char* h = std::getenv("HOME"); h && *h) base = fs::path(h) / ".local" / "share";
-    else if (const char* u = std::getenv("APPDATA"); u && *u) base = u;
     else base = ".";
+#endif
     return (base / "brainhub24-atm" / "state.tsv").string();
 }
 
@@ -887,13 +947,13 @@ static std::string paint(const std::string& style, const std::string& text) {
 //  Screen model and renderer
 // ============================================================================
 
-enum Style { S_NORMAL, S_TITLE, S_ERR, S_BIG, S_DIM, S_OK };
+enum Style { ST_NORMAL, ST_TITLE, ST_ERR, ST_BIG, ST_DIM, ST_OK };
 enum Field { F_NONE, F_PIN, F_EURO, F_CENTS, F_DIGITS };
 enum Led { L_OFF, L_ON, L_BLINK };
 
 struct Line {
     std::string s;
-    int style = S_NORMAL;
+    int style = ST_NORMAL;
 };
 
 struct Opt {
@@ -952,11 +1012,11 @@ static std::string fieldStr(const Screen& s, const std::string& buf) {
 
 static std::string styled(const Line& l) {
     switch (l.style) {
-        case S_TITLE: return sty(th.title, l.s);
-        case S_ERR: return sty(th.err, l.s);
-        case S_BIG: return sty(th.title, "»  " + l.s + "  «");
-        case S_DIM: return sty(th.dim, l.s);
-        case S_OK: return sty(th.ok, l.s);
+        case ST_TITLE: return sty(th.title, l.s);
+        case ST_ERR: return sty(th.err, l.s);
+        case ST_BIG: return sty(th.title, "»  " + l.s + "  «");
+        case ST_DIM: return sty(th.dim, l.s);
+        case ST_OK: return sty(th.ok, l.s);
         default: return l.s;
     }
 }
@@ -1306,7 +1366,7 @@ static bool presentCash(const Notes& notes, const std::string& title, const std:
     Screen s;
     s.title = title;
     s.text = text;
-    if (amount) s.body = {{fmt(amount), S_BIG}};
+    if (amount) s.body = {{fmt(amount), ST_BIG}};
     bool taken = waitTake(s, 30, cashArt(notes), "the notes");
     led.cash = L_OFF;
     return taken;
@@ -1475,7 +1535,7 @@ static Out askReceiptThenWithdraw(int euros) {
     if (!err.empty()) return withdrawError(err);
     Screen s;
     s.title = tr("receiptQ");
-    s.body = {{fmt(euros * 100LL), S_BIG}};
+    s.body = {{fmt(euros * 100LL), ST_BIG}};
     s.opts = {{'R', 3, tr("yes")}, {'R', 4, tr("no")}};
     Res r = run(s);
     if (r.kind != R_OPT) return Out::Cancel;
@@ -1561,7 +1621,7 @@ static Out depositScreen() {
     std::string w;
     for (int d : {10, 20, 50})
         if (st.wallet[d]) w += (w.empty() ? "" : "  ") + fmtWhole(d) + " × " + std::to_string(st.wallet[d]);
-    s.body = {{empty ? tr("emptyWallet") : tr("depWallet") + "  " + w, empty ? S_ERR : S_DIM}};
+    s.body = {{empty ? tr("emptyWallet") : tr("depWallet") + "  " + w, empty ? ST_ERR : ST_DIM}};
     s.opts = {{'L', 4, tr("cancel")}, {'R', 4, tr("depInsert"), true, empty}};
     s.hint = "Choose \"" + tr("depInsert") + "\" to put all notes from your wallet into the slot.";
     Res r = run(s);
@@ -1585,7 +1645,7 @@ static Out depositScreen() {
     c.title = tr("depCounted");
     for (int d : {10, 20, 50})
         if (notes[d]) c.body.push_back({padR(fmtWhole(d), 7) + " × " + padR(std::to_string(notes[d]), 4) + padL(fmt(d * notes[d] * 100LL), 12)});
-    c.body.push_back({fmt(total), S_BIG});
+    c.body.push_back({fmt(total), ST_BIG});
     c.opts = {{'R', 3, tr("depConfirm"), true}, {'R', 4, tr("depReturn")}};
     c.noTimeout = true;
     Res cr = run(c);
@@ -1751,7 +1811,7 @@ static Out statementScreen() {
     jr("MINI STATEMENT");
     Screen s;
     s.title = tr("stmtTitle");
-    if (rows.empty()) s.body = {{tr("noTx"), S_DIM}};
+    if (rows.empty()) s.body = {{tr("noTx"), ST_DIM}};
     for (const Tx& t : rows) {
         std::string amt = fmt(t.amt);
         s.body.push_back({sty(th.dim, dfmt(t.t)) + "  " + padR(cut(t.desc, 30), 30) + padL(t.amt < 0 ? amt : sty(th.ok, amt), 13)});
@@ -1807,7 +1867,7 @@ static Out changePin() {
         jr("PIN CHANGED");
         Screen d;
         d.title = tr("pinChanged");
-        d.body = {{"✔", S_OK}};
+        d.body = {{"✔", ST_OK}};
         d.opts = {{'R', 4, tr("cont"), true}};
         Res dr = run(d);
         return dr.kind == R_OPT ? Out::Another : Out::Cancel;
@@ -2081,13 +2141,13 @@ static void idleLoop() {
         s.title = tr("welcome");
         s.text = tr("insert");
         s.body = {{""},
-                  {"╭────────────────╮", S_DIM},
-                  {"│ ▣▣  ══════════ │", S_DIM},
-                  {"╰───────┬────────╯", S_DIM},
-                  {"▼", S_TITLE},
-                  {"━━━━━━━━━━━━━━━━━━━━━━", S_TITLE},
+                  {"╭────────────────╮", ST_DIM},
+                  {"│ ▣▣  ══════════ │", ST_DIM},
+                  {"╰───────┬────────╯", ST_DIM},
+                  {"▼", ST_TITLE},
+                  {"━━━━━━━━━━━━━━━━━━━━━━", ST_TITLE},
                   {""},
-                  {cashOk ? tr("insertSub") : tr("noCash"), cashOk ? S_DIM : S_ERR}};
+                  {cashOk ? tr("insertSub") : tr("noCash"), cashOk ? ST_DIM : ST_ERR}};
         s.hint = "Insert a card from your wallet (1-3). The PIN is on the sticky note.";
         led.card = L_BLINK;
         g_de = false;
@@ -2211,9 +2271,11 @@ static void usage(FILE* f) {
                  "  --sound          terminal bell for alerts and errors\n"
                  "  --timeout SEC    inactivity timeout, default 30, 0 = off\n"
                  "  --fast           no animations or delays (for scripts and tests)\n"
+                 "  --plain          line mode: type your choice and press Enter, screens scroll\n"
                  "  --autoplay       run a guided tour on a fresh demo bank (any key stops it)\n"
                  "  --state FILE     where the bank state is kept\n"
-                 "                   (default $ATM_STATE_FILE or ~/.local/share/brainhub24-atm/state.tsv)\n"
+                 "                   (default $ATM_STATE_FILE, else ~/.local/share/brainhub24-atm/state.tsv\n"
+                 "                   or %%APPDATA%%\\brainhub24-atm\\state.tsv on Windows)\n"
                  "  --reset          restore the demo bank before starting\n"
                  "  --version, --help\n\n"
                  "Demo cards (also shown on the start screen):\n"
@@ -2241,6 +2303,7 @@ int main(int argc, char** argv) {
         else if (a == "--fast") opt.fast = true;
         else if (a == "--autoplay" || a == "--demo") opt.autoplay = true;
         else if (a == "--reset") opt.reset = true;
+        else if (a == "--plain") opt.plain = true;
         else if (a == "--state") opt.statePath = value();
         else if (a == "--timeout") {
             std::string v = value();
@@ -2266,12 +2329,13 @@ int main(int argc, char** argv) {
         return 2;
     }
 
+    g_tty = !opt.plain && plat::stdinTty() && plat::stdoutTty();
+    const char* term = std::getenv("TERM");
+    g_color = opt.color && plat::stdoutTty() && !std::getenv("NO_COLOR") && !(term && std::string(term) == "dumb");
 #ifdef _WIN32
-    g_tty = false;
-    g_color = false;
+    std::signal(SIGINT, onSignal);
+    std::signal(SIGTERM, onSignal);
 #else
-    g_tty = plat::stdinTty() && plat::stdoutTty();
-    g_color = opt.color && plat::stdoutTty() && !std::getenv("NO_COLOR") && std::string(std::getenv("TERM") ? std::getenv("TERM") : "") != "dumb";
     struct sigaction sa {};
     sa.sa_handler = onSignal;
     sigaction(SIGINT, &sa, nullptr);
